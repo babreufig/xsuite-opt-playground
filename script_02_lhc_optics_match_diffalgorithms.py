@@ -77,7 +77,7 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     
     soln = pybobyqa.solve(merit_function, x0=x0,
                 bounds=bounds.T, # wants them transposed...
-                rhobeg=1e-6, rhoend=1e-16, maxfun=100, # set maximum to 3000 function evaluations
+                rhobeg=1e-6, rhoend=1e-16, maxfun=3000, # set maximum to 3000 function evaluations
                 objfun_has_noise=True, # <-- helps in this case
                 seek_global_minimum=True)
     opt.target_status()
