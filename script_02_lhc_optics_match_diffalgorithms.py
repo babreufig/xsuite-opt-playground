@@ -77,14 +77,14 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     
     soln = pybobyqa.solve(merit_function, x0=x0,
                 bounds=bounds.T, # wants them transposed...
-                rhobeg=1e-6, rhoend=1e-16, maxfun=3000, # set maximum to 3000 function evaluations
+                rhobeg=1e-6, rhoend=1e-16, maxfun=4000, # set maximum to 4000 function evaluations
                 objfun_has_noise=True, # <-- helps in this case
                 seek_global_minimum=True)
+    merit_function.set_x(soln.x)
     opt.target_status()
-    print(f"Finished after {merit_function.merit_function.call_counter} calls, reason: {'Unsolved' if opt.solver.stopped is None else opt.solver.stopped}")
 
     row = {'Algorithm': 'PyBOBYQA', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Residuals': np.sum(merit_function.merit_function.last_residue_values**2)}
+           'Penalty': merit_function(soln.x)}
     rows.append(row)
     opt.tag(f"PyBOBYQA-{bety}")
 
@@ -95,11 +95,12 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     x0 = merit_function.get_x()
     merit_function.merit_function.call_counter = 0
     soln = least_squares(merit_function, x0, bounds=Bounds(bounds.T[0], bounds.T[1]),
-                         xtol=1e-10, jac=merit_function.merit_function.get_jacobian)
+                         xtol=1e-12, jac=merit_function.merit_function.get_jacobian, max_nfev=500)
+    merit_function.set_x(soln.x)
     opt.target_status()
 
     row = {'Algorithm': 'LSQ-TRF', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Residuals': np.sum(merit_function.merit_function.last_residue_values**2)}
+           'Penalty': merit_function(soln.x)**2}
     rows.append(row)
     opt.tag(f"LS-TRF-{bety}")
     
@@ -110,11 +111,12 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     x0 = merit_function.get_x()
     merit_function.merit_function.call_counter = 0
     soln = least_squares(merit_function, x0, bounds=Bounds(bounds.T[0], bounds.T[1]),
-                         xtol=1e-10, method='dogbox', jac=merit_function.merit_function.get_jacobian)
+                         xtol=1e-12, method='dogbox', jac=merit_function.merit_function.get_jacobian, max_nfev=500)
+    merit_function.set_x(soln.x)
     opt.target_status()
 
     row = {'Algorithm': 'LS-Dogbox', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Residuals': np.sum(merit_function.merit_function.last_residue_values**2)}
+           'Penalty': merit_function(soln.x)**2}
     rows.append(row)
     opt.tag(f"LS-Dogbox-{bety}")
 
@@ -128,7 +130,7 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     opt.target_status()
 
     row = {'Algorithm': 'Jacobian', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Residuals': np.sum(merit_function.merit_function.last_residue_values**2)}
+           'Penalty': merit_function(soln.x)**2}
     rows.append(row)
     opt.tag(f"Xsuite-Jacobian-{bety}")
     
