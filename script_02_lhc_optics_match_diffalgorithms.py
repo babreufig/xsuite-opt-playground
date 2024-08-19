@@ -100,7 +100,7 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     opt.target_status()
 
     row = {'Algorithm': 'LSQ-TRF', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': merit_function(soln.x)**2}
+           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x))}
     rows.append(row)
     opt.tag(f"LS-TRF-{bety}")
     
@@ -116,7 +116,7 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     opt.target_status()
 
     row = {'Algorithm': 'LS-Dogbox', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': merit_function(soln.x)**2}
+           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x))}
     rows.append(row)
     opt.tag(f"LS-Dogbox-{bety}")
 
@@ -130,7 +130,7 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     opt.target_status()
 
     row = {'Algorithm': 'Jacobian', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': merit_function(soln.x)**2}
+           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x))}
     rows.append(row)
     opt.tag(f"Xsuite-Jacobian-{bety}")
     
