@@ -58,6 +58,8 @@ opt = collider.lhcb1.match(
 
 opt.target_status()
 
+knob_values_old = np.array(list(opt.get_knob_values().values())) # Get old knob values
+
 rows = []
 
 import pybobyqa
@@ -83,8 +85,11 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     merit_function.set_x(soln.x)
     opt.target_status()
 
+    knob_values_new = np.array(list(opt.get_knob_values().values()))
+    knob_values_diff = (knob_values_new - knob_values_old)**2
+
     row = {'Algorithm': 'PyBOBYQA', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': merit_function(soln.x)}
+           'Penalty': merit_function(soln.x), 'Avg Change knob': np.sqrt(np.sum(knob_values_diff)),'Max Change knob': np.max(knob_values_diff)}
     rows.append(row)
     opt.tag(f"PyBOBYQA-{bety}")
 
@@ -99,8 +104,11 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     merit_function.set_x(soln.x)
     opt.target_status()
 
+    knob_values_new = np.array(list(opt.get_knob_values().values()))
+    knob_values_diff = (knob_values_new - knob_values_old)**2
+
     row = {'Algorithm': 'LSQ-TRF', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x))}
+           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x)), 'Avg Change knob': np.sqrt(np.sum(knob_values_diff)),'Max Change knob': np.max(knob_values_diff)}
     rows.append(row)
     opt.tag(f"LS-TRF-{bety}")
     
@@ -115,8 +123,11 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     merit_function.set_x(soln.x)
     opt.target_status()
 
+    knob_values_new = np.array(list(opt.get_knob_values().values()))
+    knob_values_diff = (knob_values_new - knob_values_old)**2
+
     row = {'Algorithm': 'LS-Dogbox', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x))}
+           'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x)), 'Avg Change knob': np.sqrt(np.sum(knob_values_diff)),'Max Change knob': np.max(knob_values_diff)}
     rows.append(row)
     opt.tag(f"LS-Dogbox-{bety}")
 
@@ -129,8 +140,11 @@ for bety in [0.1, 0.14, 0.149, 0.1499, 0.15]:
     opt.solve()
     opt.target_status()
 
+    knob_values_new = np.array(list(opt.get_knob_values().values()))
+    knob_values_diff = (knob_values_new - knob_values_old)**2
+
     row = {'Algorithm': 'Jacobian', 'Target bety': bety, 'Successful': opt._err.last_point_within_tol, '# Calls': merit_function.merit_function.call_counter,
-           'Penalty': opt.solver.penalty_after_last_step**2}
+           'Penalty': opt.solver.penalty_after_last_step**2, 'Avg Change knob': np.sqrt(np.sum(knob_values_diff)),'Max Change knob': np.max(knob_values_diff)}
     rows.append(row)
     opt.tag(f"Xsuite-Jacobian-{bety}")
     
@@ -140,4 +154,4 @@ opt.log()
 
 df = pd.DataFrame(rows)
 print(df)
-df.to_csv("results.csv", index=False)
+df.to_csv("results_withchanges.csv", index=False)
