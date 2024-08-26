@@ -9,7 +9,7 @@ from cvxopt import matrix, solvers
 # 4. x - y = 1
 
 def F(x=None, z=None):
-    if x is None:  # Initial guess (5, 4), zero nonlinear functions
+    if x is None:  # Initial guess (2.2, 1.2), zero nonlinear functions
         return 0, matrix([2.2, 1.2])
     
     # Zielfunktion
