@@ -20,12 +20,12 @@ import matplotlib.pyplot as plt
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # Load a line and build a tracker
-line = xt.Line.from_json(dir_path + '/lhc_thick_with_knobs.json')
+line = xt.Line.from_json(dir_path + '/../../lhc_thick_with_knobs.json')
 line.build_tracker()
 
 # Match tunes and chromaticities to assigned values
 opt = line.match(
-    solve=True,
+    solve=False,
     method='4d',
     vary=[
         xt.VaryList(['kqtf.b1', 'kqtd.b1'], step=1e-8, limits=[-1e-4, 1e-4], tag='quad'),
@@ -37,13 +37,13 @@ opt = line.match(
     ])
 
 merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
+x = merit_function.get_x()
 opt.check_limits = False
 bounds = merit_function.get_x_limits()
 
-
 def objective_fun(X: torch.tensor) -> torch.tensor:
     # minus for maximization problem
-    return -merit_function(X)
+    return -np.abs(merit_function(X))
 
 
 def get_ground_truth_2d(
@@ -151,8 +151,8 @@ def build_gp_model(
 
     n_params = param_bounds.size(1)
     gp_model = SingleTaskGP(
-        train_X=train_X,
-        train_Y=train_Y,
+        train_X=train_X, # (10, 4)
+        train_Y=train_Y, # (10, 1)
         input_transform=Normalize(d=n_params, bounds=param_bounds),
         outcome_transform=outcome_transform,
         #covar_module=MaternKernel(nu=2.5)
@@ -191,21 +191,24 @@ def get_predictions(gp_model: SingleTaskGP, X: torch.tensor) -> torch.tensor:
 N_INITIAL = 10
 PARAM_BOUNDS = torch.tensor(bounds.T, dtype=torch.float64)
 TOL = 1e-8
-EARLY_STOP_THRESHOLD = 10
+EARLY_STOP_THRESHOLD = 30
 
 
 # I) Collect initial random points (could be also just 1 point to start)
 train_X = PARAM_BOUNDS[0] + (PARAM_BOUNDS[1] - PARAM_BOUNDS[0]) * torch.rand(
-    N_INITIAL,
+    N_INITIAL - 1,
     PARAM_BOUNDS.size(1),
     dtype=torch.float64,
 )
+train_X = torch.cat((train_X, torch.tensor([x])), dim=0)
+
 # Simulation
 train_Y = []
 for x in train_X:
     train_Y.append(objective_fun(x))
 train_Y = torch.tensor(train_Y, dtype=torch.float64).unsqueeze(-1)
 
+#######
 #x1, x2, grid_y = get_ground_truth_2d(objective_fun, PARAM_BOUNDS)
 
 # II) BO loop
@@ -218,7 +221,8 @@ while True:
     # a) Initialize and fit model with latest data
     gp_model = build_gp_model(train_X, train_Y, PARAM_BOUNDS)
 
-    beta = 2 * np.exp(-0.1 * i)
+    beta = 0.05
+    #beta = 1.0
 
     # b) Optimize acquisition function to get next candidate
     candidate = get_next_candidate(gp_model, PARAM_BOUNDS, beta=beta)
@@ -262,8 +266,10 @@ else:
     opt.target_status()
     print(f"Status: {i} Iterations, {merit_function.merit_function.call_counter} Calls, {best_y} penalty")
     x0 = best_x.numpy()
-    result = minimize(merit_function, x0=x0, bounds=bounds, method='L-BFGS-B')
-    print("Optimal solution:", result.x)
-    merit_function.set_x(result.x)
-    print(f"Final number of calls: {merit_function.merit_function.call_counter} Calls\n")
+    merit_function.set_x(x0)
+    #result = minimize(merit_function, x0=x0, bounds=bounds, method='L-BFGS-B')
+    #print("Optimal solution:", result.x)
+    #merit_function.set_x(result.x)
+    #print(f"Final number of calls: {merit_function.merit_function.call_counter} Calls\n")
+    #opt.solve()
 opt.target_status()

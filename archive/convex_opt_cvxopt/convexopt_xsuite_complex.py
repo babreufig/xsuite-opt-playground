@@ -49,7 +49,7 @@ opt = collider.lhcb1.match(
             'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
     targets=[
         xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0),
-        xt.TargetSet(at='ip1', betx=0.15, bety=0.10, alfx=0, alfy=0, dx=0, dpx=0),
+        xt.TargetSet(at='ip1', betx=0.15, bety=0.149, alfx=0, alfy=0, dx=0, dpx=0),
         xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1']),
         xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1']),
     ])
@@ -60,6 +60,26 @@ bounds = merit_function.get_x_limits()
 x0 = merit_function.get_x()
 
 def F(x=None, z=None):
+    if x is None:
+        return 14, matrix(merit_function.get_x())
+
+    f = merit_function(x) # Shape (14, 1)
+    fwsum = np.sum(f**2).reshape(1)
+
+    f = np.concat((fwsum, f))
+
+    jacobian = merit_function.merit_function.get_jacobian(x)
+    jacobian_sum = np.sum(jacobian, axis=0).reshape(1, len(jacobian[0]))
+    f_jacobian = np.concat((jacobian_sum, jacobian))
+
+    if z is None:
+        return matrix(f), matrix(f_jacobian)
+    else:
+        # Compute the Lagrangian Hessian, ensuring it's an n x n matrix
+        H = z[0] * (f_jacobian.T @ f_jacobian)
+        return matrix(f), matrix(f_jacobian), matrix(H)
+
+def F_old(x=None, z=None):
     if x is None:
         return 0, matrix(merit_function.get_x())
 
