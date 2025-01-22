@@ -13,7 +13,7 @@ line = env.new_line(components=[
     env.new('qd', 'Quadrupole', k1='-kq', length=1.0, anchor='start', at=10.,
             from_='qf@end'),
     env.new('end', 'Marker', at=10., from_='qd@end'),
-    #env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=0),
+    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=0),
 ])
 
 opt = line.match(
@@ -23,8 +23,29 @@ opt = line.match(
     targets=xt.Target('qx', 0.25, tol=1e-6),
 )
 opt.solve()
-opt.target_status()
-opt.vary_status()
+# opt.target_status()
+# opt.vary_status()
+
+def cot(x):
+    return 1/np.tan(x)
+
+def evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1):
+    # Define the formula for \bar{\phi}_B
+    phi_bar_B = np.arctan2(1, np.cos(phi_B - phi_A)/np.sin(phi_B - phi_A) - k1 * beta_A) + phi_A
+    return phi_bar_B
+
+def deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l):
+    # Define the derivative of phi_B_bar with respect to k1l
+    dphi = -beta_A / (1 + (cot(phi_B - phi_A) - k1l * beta_A)**2)
+    return dphi
+
+
+def deriv_beta_b_bar(beta_A, beta_B, phi_A, phi_B, k1l):
+    # Define the derivative of beta_B_bar with respect to k1l
+    phi_B_bar = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1l)
+    dbeta = -2 * beta_B * np.sin(phi_B - phi_A)**2 * cot(phi_B_bar - phi_A) / np.sin(phi_B_bar - phi_A)**2 * deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l)
+    #dbeta = 2 * beta_A * beta_B * np.sin(phi_B - phi_A)**2 / (cot(phi_B - phi_A) - k1l * beta_A)**3
+    return dbeta
 
 tw0 = line.twiss4d()
 
@@ -34,52 +55,37 @@ beta_a = tw0.betx[0]
 beta_b = tw0.betx[-1]
 phi_a = 2*np.pi*tw0.mux[0]
 phi_b = 2*np.pi*tw0.mux[-1]
-kq = env['kq']
 
-opt = line.match(
-    method='4d',
-    solve=False,
-    vary=xt.Vary('kq', step=1e-4),
-    targets=[xt.Target('mux', 0.2465, at='end', tol=1e-6), xt.Target('betx', 35.7998647, at='end', tol=1e-6)],
-)
+dk1l = env['dk1l']
 
-merit_function = opt.get_merit_function(check_limits=False)
+step = 1e-3
 
-def cot(x):
-    return 1/np.tan(x)
+env['dk1l'] += step
+tw = line.twiss4d(init=tw0)
+#alpha_a_new = tw.alfx[0]
+alpha_b_new = tw.alfx[-1]
+#beta_a_new = tw.betx[0]
+beta_b_new = tw.betx[-1]
+#phi_a_new = 2*np.pi*tw.mux[0]
+phi_b_new = 2*np.pi*tw.mux[-1]
 
-def deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l):
-    # Define the derivative of phi_B_bar with respect to k1l
-    dphi = beta_A / (1 + (cot(phi_B - phi_A) - k1l * beta_A)**2)
-    return dphi
+dalphab = (alpha_b_new - alpha_b) / step
+dbetab = (beta_b_new - beta_b) / step
+dphib = (phi_b_new - phi_b) / step
 
-def deriv_beta_b_bar(beta_A, phi_A, phi_B, k1l):
-    # Define the derivative of beta_B_bar with respect to k1l
-    dbeta = -2 * (cot(phi_B - phi_A) - k1l * beta_A) * deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l)
-    return dbeta
+# Print all parameters in a readable way
+print(f"alpha_a = {alpha_a}\t\t beta_a = {beta_a}\t phi_a = {phi_a}")
+print(f"alpha_b = {alpha_b}\t\t beta_b = {beta_b}\t phi_b = {phi_b}")
+print(f"alpha_b_new = {alpha_b_new}\t beta_b_new = {beta_b_new}\t phi_b_new = {phi_b_new}")
 
-print(tw0.alfx[0], tw0.alfx[-1], tw0.betx[0], tw0.betx[-1], 2*np.pi*tw0.mux[0], 2*np.pi*tw0.mux[-1])
+dbetabform = deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b, dk1l)
+dphibform = deriv_phi_b_bar(beta_a, phi_a, phi_b, dk1l)
 
-kq = merit_function.merit_function._extract_knob_values()[0]
-
-print(kq)
-print(merit_function.get_jacobian([kq]))
-
-print(deriv_phi_b_bar(beta_a, phi_a, phi_b, kq))
-print(deriv_beta_b_bar(beta_a, phi_a, phi_b, kq))
-print(deriv_beta_b_bar(beta_a, phi_a, phi_b, kq) / deriv_phi_b_bar(beta_a, phi_a, phi_b, kq))
-print(merit_function.get_jacobian([kq])[1][0] / merit_function.get_jacobian([kq])[0][0])
+print(dbetab, dphib)
+print(dbetabform, dphibform)
 
 x = np.linspace(-0.1, 0.1, 10000)
 y = np.array([deriv_phi_b_bar(beta_a, phi_a, phi_b, xi) for xi in x])
 
-#plt.plot(x, y)
-#plt.show()
-
-print((merit_function([kq + 1e-4]) - merit_function([kq])) / 1e-4)
-
-opt.solve()
-opt.vary_status()
-tw0 = line.twiss4d()
-print(tw0.mux[-1], tw0.betx[-1])
-opt.target_status()
+plt.plot(x, y)
+plt.show()
