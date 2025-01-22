@@ -40,7 +40,7 @@ opt = line.match(
     method='4d',
     solve=False,
     vary=xt.Vary('kq', step=1e-4),
-    targets=xt.Target('mux', 0.2465, at='end', tol=1e-6)#xt.Target('betx', 35.8, at='end', tol=1e-6),
+    targets=[xt.Target('mux', 0.2465, at='end', tol=1e-6), xt.Target('betx', 35.7998647, at='end', tol=1e-6)],
 )
 
 merit_function = opt.get_merit_function(check_limits=False)
@@ -60,20 +60,26 @@ def deriv_beta_b_bar(beta_A, phi_A, phi_B, k1l):
 
 print(tw0.alfx[0], tw0.alfx[-1], tw0.betx[0], tw0.betx[-1], 2*np.pi*tw0.mux[0], 2*np.pi*tw0.mux[-1])
 
+kq = merit_function.merit_function._extract_knob_values()[0]
+
+print(kq)
 print(merit_function.get_jacobian([kq]))
 
-print(merit_function.merit_function._extract_knob_values())
-print(kq)
-
 print(deriv_phi_b_bar(beta_a, phi_a, phi_b, kq))
+print(deriv_beta_b_bar(beta_a, phi_a, phi_b, kq))
+print(deriv_beta_b_bar(beta_a, phi_a, phi_b, kq) / deriv_phi_b_bar(beta_a, phi_a, phi_b, kq))
+print(merit_function.get_jacobian([kq])[1][0] / merit_function.get_jacobian([kq])[0][0])
 
 x = np.linspace(-0.1, 0.1, 10000)
 y = np.array([deriv_phi_b_bar(beta_a, phi_a, phi_b, xi) for xi in x])
 
-plt.plot(x, y)
-plt.show()
+#plt.plot(x, y)
+#plt.show()
+
+print((merit_function([kq + 1e-4]) - merit_function([kq])) / 1e-4)
 
 opt.solve()
 opt.vary_status()
 tw0 = line.twiss4d()
-print(tw0.mux[-1]*2*np.pi)
+print(tw0.mux[-1], tw0.betx[-1])
+opt.target_status()
