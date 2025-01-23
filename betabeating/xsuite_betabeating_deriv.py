@@ -13,7 +13,7 @@ line = env.new_line(components=[
     env.new('qd', 'Quadrupole', k1='-kq', length=1.0, anchor='start', at=10.,
             from_='qf@end'),
     env.new('end', 'Marker', at=10., from_='qd@end'),
-    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=0),
+    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=0.),
 ])
 
 opt = line.match(
@@ -35,20 +35,20 @@ def arccot(x):
     return np.arctan(1/x)
 
 def evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1):
-    # Define the formula for \bar{\phi}_B
+    # Define the formula for phi_B_bar
     #phi_bar_B = np.arctan2(1, np.cos(phi_B - phi_A)/np.sin(phi_B - phi_A) - k1 * beta_A) + phi_A
     phi_bar_B = arccot(np.cos(phi_B - phi_A)/np.sin(phi_B - phi_A) - k1 * beta_A) + phi_A
     return phi_bar_B
 
 def evaluate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
-    # Define the formula for \bar{\alpha}_B
+    # Define the formula for alpha_B_bar
     phi_bar_B = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1)
     alpha_bar_B = cot(phi_bar_B - phi_A) - (np.cos(phi_B - phi_A)*np.sin(phi_B - phi_A) - alpha_B * np.sin(phi_B - phi_A)**2)\
                                             /np.sin(phi_bar_B - phi_A)**2
     return alpha_bar_B
 
 def evaluate_beta_bar_B(beta_A, beta_B, phi_A, phi_B, k1):
-    # Define the formula for \bar{\beta}_B
+    # Define the formula for beta_B_bar
     phi_bar_B = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1)
     beta_bar_B_root = np.sqrt(beta_B) * np.sin(phi_B - phi_A) / np.sin(phi_bar_B - phi_A)
     return beta_bar_B_root**2
@@ -61,9 +61,15 @@ def deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l):
 def deriv_beta_b_bar(beta_A, beta_B, phi_A, phi_B, k1l):
     # Define the derivative of beta_B_bar with respect to k1l
     phi_B_bar = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1l)
-    #dbeta = -2 * beta_B * np.sin(phi_B - phi_A)**2 * cot(phi_B_bar - phi_A) / np.sin(phi_B_bar - phi_A)**2 * deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l)
-    dbeta = -1 * beta_A * beta_B * np.sin(phi_B - phi_A)**2 * (cot(phi_B - phi_A) - k1l * beta_A)
+    dbeta = beta_B * np.sin(phi_B - phi_A)**2 * (-2 * np.cos(phi_B_bar - phi_A)) / np.sin(phi_B_bar - phi_A)**3 * deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l)
+    #dbeta = -1 * beta_A * beta_B * np.sin(phi_B - phi_A)**2 * (cot(phi_B - phi_A) - k1l * beta_A)
     return dbeta
+
+def deriv_alpha_b_bar(alpha_B, beta_A, phi_A, phi_B, k1l):
+    # Define the derivative of alpha_B_bar with respect to k1l
+    dalpha = 2 * beta_A * (cot(phi_B - phi_A) - k1l * beta_A) * \
+                (np.cos(phi_B - phi_A) * np.sin(phi_B - phi_A) - alpha_B * np.sin(phi_B - phi_A)**2) - beta_A
+    return dalpha
 
 tw0 = line.twiss4d()
 
@@ -75,11 +81,10 @@ phi_a = 2*np.pi*tw0.mux[0]
 phi_b = 2*np.pi*tw0.mux[-1]
 
 dk1l = env['dk1l']
-
-step = 1e-4
-
+step = 1e-9
 env['dk1l'] += step
 dk1l = env['dk1l']
+
 tw = line.twiss4d(init=tw0)
 #alpha_a_new = tw.alfx[0]
 alpha_b_new = tw.alfx[-1]
@@ -87,6 +92,9 @@ alpha_b_new = tw.alfx[-1]
 beta_b_new = tw.betx[-1]
 #phi_a_new = 2*np.pi*tw.mux[0]
 phi_b_new = 2*np.pi*tw.mux[-1]
+
+# tw0.plot()
+# tw.plot()
 
 dalphab = (alpha_b_new - alpha_b) / step
 dbetab = (beta_b_new - beta_b) / step
@@ -102,17 +110,18 @@ print(f"alpha_b_form = {evaluate_alpha_bar_B(alpha_b, beta_a, phi_a, phi_b, dk1l
 
 dbetabform = deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b, dk1l)
 dphibform = deriv_phi_b_bar(beta_a, phi_a, phi_b, dk1l)
+dalphabform = deriv_alpha_b_bar(alpha_b, beta_a, phi_a, phi_b, dk1l)
 
-print(dbetab, dphib)
-print(dbetabform, dphibform)
+print(dphib, dphibform)
+print(dbetab, dbetabform)
+print(dalphab, dalphabform)
 
 x = np.linspace(-0.1, 0.1, 10000)
-phi_val = np.array([evaluate_phi_bar_B(beta_a, phi_a, phi_b, xi) for xi in x])
-phi_deriv = np.array([deriv_phi_b_bar(beta_a, phi_a, phi_b, xi) for xi in x])
+#phi_val = np.array([evaluate_phi_bar_B(beta_a, phi_a, phi_b, xi) for xi in x])
+#phi_deriv = np.array([deriv_phi_b_bar(beta_a, phi_a, phi_b, xi) for xi in x])
 
 beta_val = np.array([evaluate_beta_bar_B(beta_a, beta_b, phi_a, phi_b, xi) for xi in x])
-beta_deriv = np.array([deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b, xi) for xi in x])
+beta_deriv_ana = np.array([deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b, xi) for xi in x])
 
-plt.plot(x, beta_val)
-plt.plot(x, beta_deriv)
+plt.plot(x, beta_deriv_ana)
 plt.show()
