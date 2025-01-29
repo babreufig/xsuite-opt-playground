@@ -124,6 +124,26 @@ end = time.perf_counter()
 
 print(f"Calculating derivatives analytically took: {(end-start)*1e3:0.4f} milliseconds")
 
+num_elem = 1000
+x = np.linspace(-0.001, 0.001, num_elem)
+
+start_alpha = time.perf_counter()
+dalpha = [evaluate_alpha_bar_B(alpha_b, beta_a, phi_a, phi_b, xi) for xi in x]
+end_alpha = time.perf_counter()
+print(f"Calculating alpha derivative analytically (list of {num_elem} elem) took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
+start_beta = time.perf_counter()
+dbeta = [evaluate_beta_bar_B(beta_a, beta_b, phi_a, phi_b, xi) for xi in x]
+end_beta = time.perf_counter()
+print(f"Calculating beta derivative analytically (list of {num_elem} elem) took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
+start_phi = time.perf_counter()
+dphi = [evaluate_phi_bar_B(beta_a, phi_a, phi_b, xi) for xi in x]
+end_phi = time.perf_counter()
+print(f"Calculating phi derivative analytically (list of {num_elem} elem) took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
+
+deriv_analytical_list = end_phi - start_alpha
+print(f"Calculating derivative for all (list of {num_elem}) analytically took: {deriv_analytical_list*1e3:0.4f} milliseconds")
+
+
 # ----------------------------------
 # JAX part
 
@@ -154,9 +174,6 @@ print(f"Calculating phi derivative (1st) took: {(end_phi-start_phi)*1e3:0.4f} mi
 deriv_first_time = end_phi - start_alpha
 print(f"Calculating derivative for all (1st) took: {deriv_first_time*1e3:0.4f} milliseconds")
 
-num_elem = 1000
-x = np.linspace(-0.001, 0.001, num_elem)
-
 start_alpha = time.perf_counter()
 dalpha_autodiff_list = [grad_alpha_bar(alpha_b, beta_a, phi_a, phi_b, xi) for xi in x]
 end_alpha = time.perf_counter()
@@ -171,23 +188,23 @@ end_phi = time.perf_counter()
 print(f"Calculating phi derivative (list of {num_elem} elem) took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
 
 deriv_list = end_phi - start_alpha
-print(f"Calculating derivative for all (list of {num_elem}) took: {deriv_list*1e3:0.4f} milliseconds")
+print(f"Calculating derivative for all (list of {num_elem} elem) took: {deriv_list*1e3:0.4f} milliseconds")
 
-start_alpha = time.perf_counter()
+# start_alpha = time.perf_counter()
 grad_alpha_jit = jax.jit(grad_alpha_bar)
-end_alpha = time.perf_counter()
-print(f"Jitting alpha derivative took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
-start_beta = time.perf_counter()
+# end_alpha = time.perf_counter()
+# print(f"Jitting alpha derivative took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
+# start_beta = time.perf_counter()
 grad_beta_jit = jax.jit(grad_beta_bar)
-end_beta = time.perf_counter()
-print(f"Jitting beta derivative took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
-start_phi = time.perf_counter()
+# end_beta = time.perf_counter()
+# print(f"Jitting beta derivative took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
+# start_phi = time.perf_counter()
 grad_phi_jit = jax.jit(grad_phi_bar)
-end_phi = time.perf_counter()
-print(f"Jitting phi derivative took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
+# end_phi = time.perf_counter()
+# print(f"Jitting phi derivative took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
 
-jitting_time = end_phi - start_alpha
-print(f"Jitting all derivatives took: {jitting_time*1e3:0.4f} milliseconds")
+# jitting_time = end_phi - start_alpha
+# print(f"Jitting all derivatives took: {jitting_time*1e3:0.4f} milliseconds")
 
 start_alpha = time.perf_counter()
 dalpha_autodiff_jit = grad_alpha_jit(alpha_b, beta_a, phi_a, phi_b, dk1l).block_until_ready()
