@@ -19,7 +19,7 @@ opt = line.match(
     method='4d',
     solve=False,
     vary=xt.Vary('kq', step=1e-4),
-    targets=xt.Target('qx', 0.25, tol=1e-6),
+    targets=xt.Target('qx', 0.166666, tol=1e-6),
 )
 opt.solve()
 opt.target_status()
@@ -113,9 +113,17 @@ tw_mat_after = tw_after.get_R_matrix(tw0.name[0], tw0.name[-1])[:2,:2]
 import matplotlib.pyplot as plt
 plt.close('all')
 
+delta_phi = (dk_test * tw0.betx[0]) / (1 + (2*np.pi*np.cos(mu_test - mu0))**2 / (2*np.pi*np.sin(mu_test - mu0))**2)
+
+print(delta_phi)
+
+def cot(x):
+    return 1/np.tan(x)
+
+dphi = tw0.betx[0] / (1 + 2*np.pi*cot(mu_test - mu0) - dk_test*tw0.betx[0])**2
+
 plt.figure(1)
 plt.plot(dk_test*1e3, 2*np.pi*(mu_test - mu0), label=r'$\varphi_b$')
-plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
 plt.plot(dk_test*1e3, phi_formula - 2*np.pi*mu0, 'x', label=r'$\bar{\varphi}_b$')
 plt.legend()
 plt.xlabel(r'$\Delta kL$')
@@ -123,19 +131,27 @@ plt.xlabel(r'$\Delta kL$')
 plt.show()
 
 plt.figure(1)
-plt.plot(dk_test*1e3, alpha_test - alf0, label=r'$\alpha_B$')
-#plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
-plt.plot(dk_test*1e3, alpha_formula - alf0, 'x', label=r'$\bar{\alpha}_b$')
+plt.plot(dk_test*1e3, delta_phi, '--', label=r'$\frac{\beta_a \Delta k}{1 + \frac{\cos^2(\varphi_b - \varphi_a)}{\sin^2(\varphi_b - \varphi_a)}}$')
+plt.plot(dk_test*1e3, dphi, '--', label=r'by cot')
 plt.legend()
 plt.xlabel(r'$\Delta kL$')
 
 plt.show()
 
-plt.figure(1)
-plt.plot(dk_test*1e3, beta_test - bet0, label=r'$\beta_B$')
-#plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
-plt.plot(dk_test*1e3, beta_formula - bet0, 'x', label=r'$\bar{\beta}_b$')
-plt.legend()
-plt.xlabel(r'$\Delta kL$')
+# plt.figure(1)
+# plt.plot(dk_test*1e3, alpha_test - alf0, label=r'$\alpha_B$')
+# #plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
+# plt.plot(dk_test*1e3, alpha_formula - alf0, 'x', label=r'$\bar{\alpha}_b$')
+# plt.legend()
+# plt.xlabel(r'$\Delta kL$')
 
-plt.show()
+# plt.show()
+
+# plt.figure(1)
+# plt.plot(dk_test*1e3, beta_test - bet0, label=r'$\beta_B$')
+# #plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
+# plt.plot(dk_test*1e3, beta_formula - bet0, 'x', label=r'$\bar{\beta}_b$')
+# plt.legend()
+# plt.xlabel(r'$\Delta kL$')
+
+# plt.show()
