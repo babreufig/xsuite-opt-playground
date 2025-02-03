@@ -35,14 +35,16 @@ alpha_test = np.empty_like(dk_test)
 
 for ii, kk in enumerate(dk_test):
     env['dk1l'] = kk
-    mu_test[ii] = line.twiss4d(init=tw0).mux[-1]
-    beta_test[ii] = line.twiss4d(init=tw0).betx[-1]
-    alpha_test[ii] = line.twiss4d(init=tw0).alfx[-1]
+    tw_dev = line.twiss4d(init=tw0)
+    mu_test[ii] = tw_dev.mux[-1]
+    beta_test[ii] = tw_dev.betx[-1]
+    alpha_test[ii] = tw_dev.alfx[-1]
 
 mu0 = tw0.mux[-1]
 alf0 = tw0.alfx[-1]
 bet0 = tw0.betx[-1]
 
+# Evaluate transfer matrix based on elements of first twiss
 def evaluate_matrix(alpha_A, alpha_B, beta_A, beta_B, phi_A, phi_B):
     # Define the matrix elements
     element_11 = np.sqrt(beta_B / beta_A) * (np.cos(phi_B - phi_A) + alpha_A * np.sin(phi_B - phi_A))
@@ -70,12 +72,14 @@ def evaluate_beta_bar_B(beta_A, beta_B, phi_A, phi_B, k1):
     return beta_bar_B_root**2
 
 def evaluate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
+    # Define the formula for \bar{\alpha}_B
     phi_bar_B = evaluate_phi_bar_B(phi_A, phi_B, beta_A, k1)
     alpha_B_bar = 1/np.tan(phi_bar_B - phi_A) - \
                   (np.cos(phi_B - phi_A)*np.sin(phi_B - phi_A) - alpha_B * np.sin(phi_B - phi_A)**2) \
                     / np.sin(phi_bar_B - phi_A)**2
     return alpha_B_bar
 
+# Evaluate transfer matrix with adding a k1 perturbation
 def evaluate_matrix_after(alpha_A, alpha_B, beta_A, beta_B, phi_A, phi_B, k1):
     # Define S and C
     S = np.sin(phi_B - phi_A)
@@ -106,52 +110,58 @@ alpha_formula = evaluate_alpha_bar_B(tw0.alfx[-1], tw0.betx[0],
 
 env['dk1l'] = 1e-3
 tw_after = line.twiss4d(init=tw0)
-mat_after = evaluate_matrix_after(tw0.alfx[0], tw0.alfx[-1], tw0.betx[0], tw0.betx[-1],
+mat_perturbed = evaluate_matrix_after(tw0.alfx[0], tw0.alfx[-1], tw0.betx[0], tw0.betx[-1],
                                     2*np.pi*tw0.mux[0], 2*np.pi*tw0.mux[-1], env['dk1l'])
 tw_mat_after = tw_after.get_R_matrix(tw0.name[0], tw0.name[-1])[:2,:2]
+
+print(f"Difference unperturbed and perturbed matrix: {mymat - mat_perturbed}")
+print(f"Difference between perturbed twiss-r-matrix and calculated matrix: {tw_mat_after - mat_perturbed}") # should be zero
 
 import matplotlib.pyplot as plt
 plt.close('all')
 
-delta_phi = (dk_test * tw0.betx[0]) / (1 + (2*np.pi*np.cos(mu_test - mu0))**2 / (2*np.pi*np.sin(mu_test - mu0))**2)
+diff_phi_bar = 2 * np.pi * (mu_test - tw0.mux[0]) # bar varphi_b - varphi_a
+diff_phi = 2 * np.pi * (tw0.mux[-1] - tw0.mux[0]) # varphi_b - varphi_a
 
-print(delta_phi)
+delta_phi_approx = (dk_test * tw0.betx[0]) / (1 + 1/np.tan(diff_phi_bar)**2) # approx
+delta_phi_exact = 2 * np.pi * (mu_test - tw0.mux[-1]) # exact
 
 def cot(x):
     return 1/np.tan(x)
 
-dphi = tw0.betx[0] / (1 + 2*np.pi*cot(mu_test - mu0) - dk_test*tw0.betx[0])**2
+dphi_exact = tw0.betx[0] / (1 + (cot(diff_phi_bar) - dk_test*tw0.betx[0])**2) # exact
 
 plt.figure(1)
 plt.plot(dk_test*1e3, 2*np.pi*(mu_test - mu0), label=r'$\varphi_b$')
 plt.plot(dk_test*1e3, phi_formula - 2*np.pi*mu0, 'x', label=r'$\bar{\varphi}_b$')
+plt.plot(dk_test*1e3, delta_phi_approx, '--', label=r'$\frac{\beta_a \Delta k}{1 + \frac{\cos^2(\varphi_b - \varphi_a)}{\sin^2(\varphi_b - \varphi_a)}}$')
+plt.plot(dk_test*1e3, delta_phi_approx / dk_test, '--', label=r'deriv')
+plt.plot(dk_test*1e3, dphi_exact, '--', label=r'by cot')
 plt.legend()
 plt.xlabel(r'$\Delta kL$')
 
 plt.show()
 
-plt.figure(1)
-plt.plot(dk_test*1e3, delta_phi, '--', label=r'$\frac{\beta_a \Delta k}{1 + \frac{\cos^2(\varphi_b - \varphi_a)}{\sin^2(\varphi_b - \varphi_a)}}$')
-plt.plot(dk_test*1e3, dphi, '--', label=r'by cot')
+delta_alpha = 1/(delta_phi_approx + np.tan(diff_phi) + delta_phi_approx*np.tan(diff_phi)**2) - \
+    (np.cos(diff_phi) - tw0.alfx[-1]*np.sin(diff_phi))/(np.sin(diff_phi) + 2 * delta_phi_approx * np.cos(diff_phi)) # approx
+
+plt.figure(2)
+plt.plot(dk_test*1e3, alpha_test - alf0, label=r'$\alpha_B$')
+plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
+plt.plot(dk_test*1e3, alpha_formula - alf0, 'x', label=r'$\bar{\alpha}_b$')
+plt.plot(dk_test*1e3, delta_alpha, '--' ,label=r'delta_alpha approx')
+plt.plot(dk_test*1e3, alpha_test, '--' ,label=r'alpha formula')
 plt.legend()
 plt.xlabel(r'$\Delta kL$')
-
 plt.show()
 
-# plt.figure(1)
-# plt.plot(dk_test*1e3, alpha_test - alf0, label=r'$\alpha_B$')
-# #plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
-# plt.plot(dk_test*1e3, alpha_formula - alf0, 'x', label=r'$\bar{\alpha}_b$')
-# plt.legend()
-# plt.xlabel(r'$\Delta kL$')
+delta_beta = tw0.betx[-1] * (1 - (2*dk_test*tw0.betx[0]/np.sin(diff_phi)) * np.cos(diff_phi)/(1 + np.cos(diff_phi)**2))
 
-# plt.show()
-
-# plt.figure(1)
-# plt.plot(dk_test*1e3, beta_test - bet0, label=r'$\beta_B$')
-# #plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
-# plt.plot(dk_test*1e3, beta_formula - bet0, 'x', label=r'$\bar{\beta}_b$')
-# plt.legend()
-# plt.xlabel(r'$\Delta kL$')
-
-# plt.show()
+plt.figure(3)
+plt.plot(dk_test*1e3, beta_test - bet0, label=r'$\beta_B$')
+plt.plot(dk_test*1e3, beta_formula - bet0, 'x', label=r'$\bar{\beta}_b$')
+plt.plot(dk_test*1e3, delta_beta, '--' , label=r'beta bar approx')
+plt.plot(dk_test*1e3, beta_test, '--' , label=r'beta bar exact')
+plt.legend()
+plt.xlabel(r'$\Delta kL$')
+plt.show()
