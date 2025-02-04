@@ -133,19 +133,14 @@ dphi_exact = tw0.betx[0] / (1 + (cot(diff_phi_bar) - dk_test*tw0.betx[0])**2) # 
 
 fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
 # Plot delta phi
-plt.figure(1)
-# plt.plot(dk_test*1e3, 2*np.pi*(mu_test - mu0), label=r'$\varphi_b$')
-# plt.plot(dk_test*1e3, phi_formula - 2*np.pi*mu0, 'x', label=r'$\bar{\varphi}_b$')
 axes[0].plot(dk_test*1e3, delta_phi_exact, label=r'$\Delta\varphi$ exact')
 axes[0].plot(dk_test*1e3, delta_phi_approx, 'x', label=r'$\Delta\varphi$ approximated')
-# plt.plot(dk_test*1e3, delta_phi_approx / dk_test, '--', label=r'deriv')
-# plt.plot(dk_test*1e3, dphi_exact, '--', label=r'by cot')
 axes[0].set_xlabel(r'$\Delta kL [10^{-3}]$')
 axes[0].set_title(r'$\Delta\varphi$ Comparison')
 axes[0].legend()
 
-
-axes[1].plot(dk_test*1e3, delta_phi_approx / dk_test, '--', label=r'deriv approximated')
+delta_phi_deriv_approx = delta_phi_approx / dk_test
+axes[1].plot(dk_test*1e3, delta_phi_deriv_approx, '--', label=r'deriv approximated')
 axes[1].plot(dk_test*1e3, dphi_exact, '--', label=r'deriv exact')
 axes[1].set_xlabel(r'$\Delta kL [10^{-3}]$')
 axes[1].set_title(r'Derivatives Comparison')
@@ -153,26 +148,58 @@ axes[1].legend()
 plt.tight_layout()
 plt.show()
 
-alpha_bar_approx = 1/(delta_phi_approx + np.tan(diff_phi) + delta_phi_approx*np.tan(diff_phi)**2) - \
-    (np.cos(diff_phi) - tw0.alfx[-1]*np.sin(diff_phi))/(np.sin(diff_phi) + 2 * delta_phi_approx * np.cos(diff_phi)) # approx
+fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
 
-plt.figure(2)
-plt.plot(dk_test*1e3, alpha_test - alf0, label=r'$\alpha_B$')
-plt.plot(dk_test*1e3, dk_test*tw0.betx[0], '--', label=r'$\beta_a \Delta k$')
-plt.plot(dk_test*1e3, alpha_formula - alf0, 'x', label=r'$\bar{\alpha}_b$')
-plt.plot(dk_test*1e3, alpha_bar_approx, '--' ,label=r'delta_alpha approx')
-plt.plot(dk_test*1e3, alpha_test, '--' ,label=r'alpha formula')
-plt.legend()
-plt.xlabel(r'$\Delta kL$')
+#alpha_bar_approx = 1/(delta_phi_approx + np.tan(diff_phi) + delta_phi_approx*np.tan(diff_phi)**2) - \
+#    (np.cos(diff_phi) - tw0.alfx[-1]*np.sin(diff_phi))/(np.sin(diff_phi) + 2 * delta_phi_approx * np.cos(diff_phi)) # approx
+alpha_bar_approx = -dk_test * tw0.betx[0] * np.sin(diff_phi) * np.cos(diff_phi) \
+                    - dk_test * tw0.betx[0] / (1 + 1/np.tan(diff_phi)**2) \
+                    + tw0.alfx[-1] \
+                    + 2 * dk_test * tw0.betx[0] * np.cos(diff_phi)**2 \
+                    - dk_test * tw0.betx[0] * tw0.alfx[-1] / np.tan(diff_phi) # approx
+
+axes[0].plot(dk_test*1e3, alpha_test, label=r'$\bar{\alpha}_b$ exact')
+axes[0].plot(dk_test*1e3, alpha_bar_approx, '--' ,label=r'$\bar{\alpha}_b$ approx')
+axes[0].set_xlabel(r'$\Delta kL [10^{-3}]$')
+axes[0].set_title(r'$\bar{\alpha}_b$ Comparison')
+axes[0].legend()
+
+alpha_bar_deriv_exact = 2 * tw0.betx[0] * (cot(diff_phi) - dk_test*tw0.betx[0]) * \
+                        (np.cos(diff_phi) * np.sin(diff_phi) - tw0.alfx[-1] * np.sin(diff_phi)**2) - tw0.betx[0]
+
+alpha_bar_deriv_approx = - tw0.betx[0] * np.sin(diff_phi) * np.cos(diff_phi) \
+                        - tw0.betx[0] / (1 + 1/np.tan(diff_phi)**2) \
+                        + 2 * tw0.betx[0] * np.cos(diff_phi)**2 \
+                        - tw0.betx[0] * tw0.alfx[-1] / np.tan(diff_phi) # approx
+
+axes[1].plot(dk_test*1e3, alpha_bar_deriv_exact, '--', label=r'deriv exact')
+axes[1].plot(dk_test*1e3, np.repeat(alpha_bar_deriv_approx, len(dk_test)), '--', label=r'deriv approximated')
+axes[1].set_xlabel(r'$\Delta kL [10^{-3}]$')
+axes[1].set_title(r'Derivatives Comparison')
+axes[1].legend()
 plt.show()
+
+
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 4), sharex=True)
 
 beta_bar_approx = tw0.betx[-1] * (1 - (2*dk_test*tw0.betx[0]/np.sin(diff_phi)) * np.cos(diff_phi)/(1 + np.cos(diff_phi)**2))
 
-plt.figure(3)
-plt.plot(dk_test*1e3, beta_test - bet0, label=r'$\beta_B$')
-plt.plot(dk_test*1e3, beta_formula - bet0, 'x', label=r'$\bar{\beta}_b$')
-plt.plot(dk_test*1e3, beta_bar_approx, '--' , label=r'beta bar approx')
-plt.plot(dk_test*1e3, beta_test, '--' , label=r'beta bar exact')
-plt.legend()
-plt.xlabel(r'$\Delta kL$')
+axes[0].plot(dk_test*1e3, beta_test, label=r'$\beta_B$ twiss')
+axes[0].plot(dk_test*1e3, beta_formula, 'x', label=r'$\bar{\beta}_b$ exact')
+axes[0].plot(dk_test*1e3, beta_bar_approx, '--' , label=r'$\bar{\beta}_b$ approx')
+axes[0].set_title(r'$\bar{\beta}_b$ Comparison')
+axes[0].set_xlabel(r'$\Delta kL [10^{-3}]$')
+axes[0].legend()
+
+beta_bar_deriv_approx = tw0.betx[-1] * (1 - 2 * tw0.betx[0] / np.sin(diff_phi) * np.cos(diff_phi) / (1 + np.cos(diff_phi)**2))
+beta_bar_deriv_exact = -2 * tw0.betx[0] * tw0.betx[-1] * np.sin(diff_phi)**2 * (cot(diff_phi) - dk_test * tw0.betx[0])
+
+axes[1].plot(dk_test*1e3, np.repeat(beta_bar_deriv_approx, len(dk_test)), '--', label=r'$\bar{\beta_B}$ deriv approx')
+axes[1].plot(dk_test*1e3, beta_bar_deriv_exact, label=r'$\bar{\beta_B}$ deriv exact')
+axes[1].set_title(r'Derivatives Comparison')
+axes[1].set_xlabel(r'$\Delta kL [10^{-3}]$')
+axes[1].legend()
+
+
 plt.show()
