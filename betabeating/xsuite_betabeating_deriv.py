@@ -45,6 +45,10 @@ def evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1):
     phi_bar_B = arccot(jnp.cos(phi_B - phi_A)/jnp.sin(phi_B - phi_A) - k1 * beta_A) + phi_A
     return phi_bar_B
 
+def approximate_phi_bar_B(beta_A, phi_A, phi_B, k1):
+    deriv_phi_bar_B_approx = k1 * beta_A / (1 + jnp.cos(phi_B - phi_A)**2/jnp.sin(phi_B - phi_A)**2) + phi_B
+    return deriv_phi_bar_B_approx
+
 def evaluate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
     # Define the formula for alpha_B_bar
     phi_bar_B = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1)
@@ -52,16 +56,31 @@ def evaluate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
                                             /jnp.sin(phi_bar_B - phi_A)**2
     return alpha_bar_B
 
+def approximate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
+    alpha_bar_B_approx = alpha_B + k1 * beta_A * \
+                (jnp.cos(phi_B - phi_A)**2 - 
+                 jnp.sin(phi_B - phi_A)**2 - 
+                 2 * alpha_B * jnp.cos(phi_B - phi_A) * jnp.sin(phi_B - phi_A))
+    return alpha_bar_B_approx
+
 def evaluate_beta_bar_B(beta_A, beta_B, phi_A, phi_B, k1):
     # Define the formula for beta_B_bar
     phi_bar_B = evaluate_phi_bar_B(beta_A, phi_A, phi_B, k1)
     beta_bar_B_root = jnp.sqrt(beta_B) * jnp.sin(phi_B - phi_A) / jnp.sin(phi_bar_B - phi_A)
     return beta_bar_B_root**2
 
+def approximate_beta_bar_B(beta_A, beta_B, phi_A, phi_B, k1):
+    beta_bar_B_approx = beta_B - 2 * beta_B * k1 * beta_A * jnp.sin(phi_B - phi_A) * jnp.cos(phi_B - phi_A)
+    return beta_bar_B_approx
+
 def deriv_phi_b_bar(beta_A, phi_A, phi_B, k1l):
     # Define the derivative of phi_B_bar with respect to k1l
     dphi = beta_A / (1 + (cot(phi_B - phi_A) - k1l * beta_A)**2)
     return dphi
+
+def approximate_deriv_phi_b_bar(beta_A, phi_A, phi_B):
+    deriv_phi_b_bar = beta_A / (1 + jnp.cos(phi_B - phi_A)**2/jnp.sin(phi_B - phi_A)**2)
+    return deriv_phi_b_bar
 
 def deriv_beta_b_bar(beta_A, beta_B, phi_A, phi_B, k1l):
     # Define the derivative of beta_B_bar with respect to k1l
@@ -70,11 +89,22 @@ def deriv_beta_b_bar(beta_A, beta_B, phi_A, phi_B, k1l):
     #dbeta = -1 * beta_A * beta_B * np.sin(phi_B - phi_A)**2 * (cot(phi_B - phi_A) - k1l * beta_A)
     return dbeta
 
+def approximate_deriv_beta_b_bar(beta_A, beta_B, phi_A, phi_B):
+    deriv_beta_b_bar_approx = -2 * beta_B * beta_A * jnp.sin(phi_B - phi_A) * jnp.cos(phi_B - phi_A)
+    return deriv_beta_b_bar_approx
+
 def deriv_alpha_b_bar(alpha_B, beta_A, phi_A, phi_B, k1l):
     # Define the derivative of alpha_B_bar with respect to k1l
     dalpha = 2 * beta_A * (cot(phi_B - phi_A) - k1l * beta_A) * \
                 (np.cos(phi_B - phi_A) * np.sin(phi_B - phi_A) - alpha_B * np.sin(phi_B - phi_A)**2) - beta_A
     return dalpha
+
+def approximate_deriv_alpha_b_bar(alpha_B, beta_A, phi_A, phi_B):
+    deriv_alpha_b_bar_approx = beta_A * \
+                (jnp.cos(phi_B - phi_A)**2 - 
+                 jnp.sin(phi_B - phi_A)**2 - 
+                 2 * alpha_B * jnp.cos(phi_B - phi_A) * jnp.sin(phi_B - phi_A))
+    return deriv_alpha_b_bar_approx
 
 
 tw0 = line.twiss4d()
@@ -124,24 +154,49 @@ end = time.perf_counter()
 
 print(f"Calculating derivatives analytically took: {(end-start)*1e3:0.4f} milliseconds")
 
+start = time.perf_counter()
+dbetabform = approximate_deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b)
+dphibform = approximate_deriv_phi_b_bar(beta_a, phi_a, phi_b)
+dalphabform = approximate_deriv_alpha_b_bar(alpha_b, beta_a, phi_a, phi_b)
+end = time.perf_counter()
+
+print(f"Calculating derivatives approximatively took: {(end-start)*1e3:0.4f} milliseconds")
+
 num_elem = 1000
 x = np.linspace(-0.001, 0.001, num_elem)
 
 start_alpha = time.perf_counter()
-dalpha = [evaluate_alpha_bar_B(alpha_b, beta_a, phi_a, phi_b, xi) for xi in x]
+dalpha = [deriv_alpha_b_bar(alpha_b, beta_a, phi_a, phi_b, xi) for xi in x]
 end_alpha = time.perf_counter()
 print(f"Calculating alpha derivative analytically (list of {num_elem} elem) took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
 start_beta = time.perf_counter()
-dbeta = [evaluate_beta_bar_B(beta_a, beta_b, phi_a, phi_b, xi) for xi in x]
+dbeta = [deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b, xi) for xi in x]
 end_beta = time.perf_counter()
 print(f"Calculating beta derivative analytically (list of {num_elem} elem) took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
 start_phi = time.perf_counter()
-dphi = [evaluate_phi_bar_B(beta_a, phi_a, phi_b, xi) for xi in x]
+dphi = [deriv_phi_b_bar(beta_a, phi_a, phi_b, xi) for xi in x]
 end_phi = time.perf_counter()
 print(f"Calculating phi derivative analytically (list of {num_elem} elem) took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
 
 deriv_analytical_list = end_phi - start_alpha
 print(f"Calculating derivative for all (list of {num_elem}) analytically took: {deriv_analytical_list*1e3:0.4f} milliseconds")
+
+start_alpha = time.perf_counter()
+dalpha = [approximate_deriv_alpha_b_bar(alpha_b, beta_a, phi_a, phi_b) for xi in x]
+end_alpha = time.perf_counter()
+print(f"Calculating alpha derivative approximatively (list of {num_elem} elem) took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
+start_beta = time.perf_counter()
+dbeta = [approximate_deriv_beta_b_bar(beta_a, beta_b, phi_a, phi_b) for xi in x]
+end_beta = time.perf_counter()
+print(f"Calculating beta derivative approximatively (list of {num_elem} elem) took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
+start_phi = time.perf_counter()
+dphi = [approximate_deriv_phi_b_bar(beta_a, phi_a, phi_b) for xi in x]
+end_phi = time.perf_counter()
+print(f"Calculating phi derivative approximatively (list of {num_elem} elem) took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
+
+deriv_analytical_list = end_phi - start_alpha
+print(f"Calculating derivative for all (list of {num_elem}) approximatively took: {deriv_analytical_list*1e3:0.4f} milliseconds.\n"+\
+      "This can be optimized, since it's a constant function and just needs to be calculated once.")
 
 
 # ----------------------------------
@@ -154,6 +209,14 @@ start = time.perf_counter()
 grad_beta_bar = jax.grad(evaluate_beta_bar_B, argnums=4)
 grad_alpha_bar = jax.grad(evaluate_alpha_bar_B, argnums=4)
 grad_phi_bar = jax.grad(evaluate_phi_bar_B, argnums=3)
+end = time.perf_counter()
+
+print(f"Creating gradient function took: {(end-start)*1e3:0.4f} milliseconds")
+
+start = time.perf_counter()
+grad_beta_bar_approx = jax.grad(approximate_beta_bar_B, argnums=4)
+grad_alpha_bar_approx = jax.grad(approximate_alpha_bar_B, argnums=4)
+grad_phi_bar_approx = jax.grad(approximate_phi_bar_B, argnums=3)
 end = time.perf_counter()
 
 print(f"Creating gradient function took: {(end-start)*1e3:0.4f} milliseconds")
@@ -206,6 +269,10 @@ grad_phi_jit = jax.jit(grad_phi_bar)
 # jitting_time = end_phi - start_alpha
 # print(f"Jitting all derivatives took: {jitting_time*1e3:0.4f} milliseconds")
 
+grad_alpha_approx_jit = jax.jit(grad_alpha_bar_approx)
+grad_beta_approx_jit = jax.jit(grad_beta_bar_approx)
+grad_phi_approx_jit = jax.jit(grad_phi_bar_approx)
+
 start_alpha = time.perf_counter()
 dalpha_autodiff_jit = grad_alpha_jit(alpha_b, beta_a, phi_a, phi_b, dk1l).block_until_ready()
 end_alpha = time.perf_counter()
@@ -223,6 +290,22 @@ deriv_jit_time = end_phi - start_alpha
 print(f"Calculating derivative for all (1st) with jit took: {deriv_jit_time*1e3:0.4f} milliseconds")
 
 start_alpha = time.perf_counter()
+dalpha_autodiff_jit = grad_alpha_approx_jit(alpha_b, beta_a, phi_a, phi_b, dk1l).block_until_ready()
+end_alpha = time.perf_counter()
+print(f"Calculating approximate alpha derivative (1st) with jit took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
+start_beta = time.perf_counter()
+dbeta_autodiff_jit = grad_beta_approx_jit(beta_a, beta_b, phi_a, phi_b, dk1l).block_until_ready()
+end_beta = time.perf_counter()
+print(f"Calculating approximate beta derivative (1st) with jit took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
+start_phi = time.perf_counter()
+dphi_autodiff_jit = grad_phi_approx_jit(beta_a, phi_a, phi_b, dk1l).block_until_ready()
+end_phi = time.perf_counter()
+print(f"Calculating approximate phi derivative (1st) with jit took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
+
+deriv_jit_time = end_phi - start_alpha
+print(f"Calculating approximate derivative for all (1st) with jit took: {deriv_jit_time*1e3:0.4f} milliseconds")
+
+start_alpha = time.perf_counter()
 dalpha_autodiff_jit = [grad_alpha_jit(alpha_b, beta_a, phi_a, phi_b, xi).block_until_ready() for xi in x]
 end_alpha = time.perf_counter()
 print(f"Calculating alpha derivative (list with {num_elem} elem) with jit took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
@@ -237,3 +320,19 @@ print(f"Calculating phi derivative (list with {num_elem} elem) with jit took: {(
 
 deriv_jit_time_list = end_phi - start_alpha
 print(f"Calculating derivative for all (list with {num_elem}) with jit took: {deriv_jit_time_list*1e3:0.4f} milliseconds")
+
+start_alpha = time.perf_counter()
+dalpha_autodiff_jit = [grad_alpha_approx_jit(alpha_b, beta_a, phi_a, phi_b, xi).block_until_ready() for xi in x]
+end_alpha = time.perf_counter()
+print(f"Calculating approximate alpha derivative (list with {num_elem} elem) with jit took: {(end_alpha-start_alpha)*1e3:0.4f} milliseconds")
+start_beta = time.perf_counter()
+dbeta_autodiff_jit = [grad_beta_approx_jit(beta_a, beta_b, phi_a, phi_b, xi).block_until_ready() for xi in x]
+end_beta = time.perf_counter()
+print(f"Calculating approximate beta derivative (list with {num_elem} elem) with jit took: {(end_beta-start_beta)*1e3:0.4f} milliseconds")
+start_phi = time.perf_counter()
+dphi_autodiff_jit = [grad_phi_approx_jit(beta_a, phi_a, phi_b, xi).block_until_ready() for xi in x]
+end_phi = time.perf_counter()
+print(f"Calculating approximate phi derivative (list with {num_elem} elem) with jit took: {(end_phi-start_phi)*1e3:0.4f} milliseconds")
+
+deriv_jit_time_list = end_phi - start_alpha
+print(f"Calculating approximate derivative for all (list with {num_elem}) with jit took: {deriv_jit_time_list*1e3:0.4f} milliseconds")
