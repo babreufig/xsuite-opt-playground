@@ -58,8 +58,8 @@ def evaluate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
 
 def approximate_alpha_bar_B(alpha_B, beta_A, phi_A, phi_B, k1):
     alpha_bar_B_approx = alpha_B + k1 * beta_A * \
-                (jnp.cos(phi_B - phi_A)**2 - 
-                 jnp.sin(phi_B - phi_A)**2 - 
+                (jnp.cos(phi_B - phi_A)**2 -
+                 jnp.sin(phi_B - phi_A)**2 -
                  2 * alpha_B * jnp.cos(phi_B - phi_A) * jnp.sin(phi_B - phi_A))
     return alpha_bar_B_approx
 
@@ -101,8 +101,8 @@ def deriv_alpha_b_bar(alpha_B, beta_A, phi_A, phi_B, k1l):
 
 def approximate_deriv_alpha_b_bar(alpha_B, beta_A, phi_A, phi_B):
     deriv_alpha_b_bar_approx = beta_A * \
-                (jnp.cos(phi_B - phi_A)**2 - 
-                 jnp.sin(phi_B - phi_A)**2 - 
+                (jnp.cos(phi_B - phi_A)**2 -
+                 jnp.sin(phi_B - phi_A)**2 -
                  2 * alpha_B * jnp.cos(phi_B - phi_A) * jnp.sin(phi_B - phi_A))
     return deriv_alpha_b_bar_approx
 
