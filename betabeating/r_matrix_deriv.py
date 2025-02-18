@@ -1,6 +1,7 @@
 import xtrack as xt
 import numpy as np
 import sympy as sp
+import matplotlib.pyplot as plt
 
 sp.init_printing()
 
@@ -9,13 +10,16 @@ env.particle_ref = xt.Particles(p0c=7e12)
 
 env['kq'] = 0.1
 env['dk1l'] = 0.
+env['bphi'] = 0.
 
 line = env.new_line(components=[
-    env.new('qf', 'Quadrupole', k1='kq', length=1.0, anchor='start', at=0.),
-    env.new('qd', 'Quadrupole', k1='-kq', length=1.0, anchor='start', at=10.,
+    env.new('qf', 'Quadrupole', k1='kq', length=0.5, anchor='start', at=1.),
+    env.new('bend', 'Bend', angle='bphi', k0='bphi', at=0., anchor='start', length=1.0),
+    env.new('qd', 'Quadrupole', k1='-kq', length=0.5, anchor='start', at=11.,
             from_='qf@end'),
     env.new('end', 'Marker', at=10., from_='qd@end'),
-    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=0),
+    env.new('start', 'Marker', at=0.),
+    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=1.),
 ])
 
 opt = line.match(
@@ -29,95 +33,52 @@ opt.solve()
 opt.target_status()
 opt.vary_status()
 
+#tw0 = line.twiss4d(start=xt.START, end="qd@end", init_at=xt.END)
 tw0 = line.twiss4d()
+init_conditions = tw0.get_twiss_init('start')
 
-beta_A = tw0.betx[0]
-beta_B = tw0.betx[-1]
-alpha_A = tw0.alfx[0]
-alpha_B = tw0.alfx[-1]
-mu_A = tw0.mux[0]
-mu_B = tw0.mux[-1]
-dx_A = tw0.dx[0]
-dpx_A = tw0.dpx[0]
+env['bphi'] = 2 * np.pi / 1000
+tw0 = line.twiss4d(init=init_conditions)
 
+betx_A = tw0.betx[0]
+bety_A = tw0.bety[0]
+betx_B = tw0.betx[-1]
 bety_B = tw0.bety[-1]
+alfx_A = tw0.alfx[0]
+alfy_A = tw0.alfy[0]
+alfx_B = tw0.alfx[-1]
 alfy_B = tw0.alfy[-1]
+mux_A = tw0.mux[0]
+muy_A = tw0.muy[0]
+mux_B = tw0.mux[-1]
 muy_B = tw0.muy[-1]
+dx_A = tw0.dx[0]
+dx_B = tw0.dx[-1]
+dy_A = tw0.dy[0]
+dy_B = tw0.dy[-1]
+dpx_A = tw0.dpx[0]
+dpx_B = tw0.dpx[-1]
+dpy_A = tw0.dpy[0]
+dpy_B = tw0.dpy[-1]
 
 R_AB = tw0.get_R_matrix(tw0.name[0], tw0.name[-1])
 
+print(dx_A, dpx_A, dy_A, dpy_A)
+print(dx_B, dpx_B, dy_B, dpy_B)
 
-# Define Variables R11, R12, R21 and R22 with Sympy
-R11, R12, R21, R22, x, b1, a1, mu1, R11t, R12t, R21t, R22t, dx1, dpx1 = sp.symbols('R11 R12 R21 R22 x b1 a1 mu1 R11t R12t R21t R22t dx1 dpx1')
-phi1 = 2 * sp.pi * mu1
+dk1l_arr = np.linspace(-0.001, 0.001, 100)
+init_sec = tw0.get_twiss_init('start')
+dx_arr = np.zeros(len(dk1l_arr))
 
-R_AB_sp = sp.Matrix([[R11, R12], [R21, R22]])
-R_Q_sp = sp.Matrix([[1, 0], [-x, 1]])
-R_AB_tld = R_AB_sp @ R_Q_sp
+for i, dk1l in enumerate(dk1l_arr):
+    env['dk1l'] = dk1l
+    twnew = line.twiss(init=init_sec)
+    dx_arr[i] = twnew.dx[-1]
+    analytic_ddx = twnew.get_twiss_param_derivative('end', 'dquad')['ddx']
 
-R_AB_2 = R_AB_tld @ sp.Matrix([dx1, dpx1])
-print(R_AB_2)
+gradient = (dx_arr[1:] - dx_arr[:-1])/(dk1l_arr[1] - dk1l_arr[0])
 
-R11t, R12t, R21t, R22t = R_AB_tld[0, 0], R_AB_tld[0, 1], R_AB_tld[1, 0], R_AB_tld[1, 1]
+print(analytic_ddx)
+print(gradient)
 
-# Define formula for propagation
-b2 = 1/b1 * ((R11t * b1 - R12t * a1)**2 + R12t**2)
-a2 = -1/b1 * ((R11t * b1 - R12t * a1) * (R21t * b1 - R22t * a1) + R12t * R22t)
-mu2 = mu1 + sp.atan(R12t / (R11t * b1 - R12t * a1))
-phi2 = 2 * sp.pi * mu2
-
-db2 = b2.diff(x).simplify()
-da2 = a2.diff(x).simplify()
-dmu2 = mu2.diff(x).simplify()
-dphi2 = phi2.diff(x).simplify()
-dx2 = R_AB_2[0]
-dpx2 = R_AB_2[1]
-
-ddx2 = dx2.diff(x).simplify()
-ddpx2 = dpx2.diff(x).simplify()
-
-dk1l = 1e-6
-env['dk1l'] = dk1l
-tw_dev = line.twiss4d(init=tw0)
-R_ABt = tw_dev.get_R_matrix(tw0.name[0], tw0.name[-1])
-
-dbeta_num = (tw_dev.betx[-1] - beta_B) / dk1l
-dalpha_num = (tw_dev.alfx[-1] - alpha_B) / dk1l
-dphi_num = (2*np.pi*(tw_dev.mux[-1] - mu_B)) / dk1l
-
-print(dbeta_num)
-
-# Calculate value for db2 with k = 1e-6
-db2_val = db2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A})
-print(db2_val)
-
-
-da2_val = da2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A})
-print(da2_val)
-print(dalpha_num)
-
-dphi2_val = dphi2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A})
-print(dphi2_val)
-print(dphi_num)
-
-dmu2_val = dmu2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A})
-print(dmu2_val)
-print(dphi_num)
-
-ddx2_val = ddx2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A, dx1: dx_A, dpx1: dpx_A})
-print(ddx2_val)
-print(tw_dev.dx[-1])
-
-ddpx2_val = ddpx2.subs({R11: R_AB[0, 0], R12: R_AB[0, 1], R21: R_AB[1, 0], R22: R_AB[1, 1], x: dk1l, b1: beta_A, a1: alpha_A, mu1: mu_A, dx1: dx_A, dpx1: dpx_A})
-print(ddpx2_val)
-print(tw_dev.dpx[-1])
-
-dbety_num = (tw_dev.bety[-1] - bety_B) / dk1l
-dalfy_num = (tw_dev.alfy[-1] - alfy_B) / dk1l
-dmuy_num = 2 * np.pi * (tw_dev.muy[-1] - muy_B) / dk1l
-
-print(dbety_num)
-
-print(dalfy_num)
-
-print(dmuy_num)
+plt.show()
