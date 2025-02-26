@@ -63,7 +63,7 @@ def dtrackfd(positions, init_cond, lst, eps=1e-12):
 # End tracking code
 
 
-ncell = 1
+ncell = 10000
 fodo_lattice = jnp.asarray([
     (ElementType.DRIFT, 1.2, 0.0),
     (ElementType.QUADRUPOLE_KICK, 0.8, 0.0),
@@ -78,11 +78,11 @@ chi = 0.8
 
 init_cond = jnp.array([rvv, chi])
 
-jac_fwd = dtrackfwd(p0, init_cond, fodo_lattice)
-jac_rev = dtrackrev(p0, init_cond, fodo_lattice)
-jac_fd = dtrackfd(p0, init_cond, fodo_lattice)
+# jac_fwd = dtrackfwd(p0, init_cond, fodo_lattice)
+# jac_rev = dtrackrev(p0, init_cond, fodo_lattice)
+# jac_fd = dtrackfd(p0, init_cond, fodo_lattice)
 
-tracked_pos = track(p0, init_cond, fodo_lattice)
+# tracked_pos = track(p0, init_cond, fodo_lattice)
 
 # %timeit dtrackfwd(p0, init_cond, fodo_lattice)
 # %timeit dtrackrev(p0, init_cond, fodo_lattice)
