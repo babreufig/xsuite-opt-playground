@@ -38,7 +38,7 @@ def trackone(positions, init_cond, element):
     return jax.lax.cond(
         element_type == ElementType.DRIFT,
         lambda p: drift(p, init_cond, knl),
-        lambda p: quad_kick(p, init_cond, knl, ksl), # knl = param, ksl = 0.0
+        lambda p: quad_kick(p, init_cond, knl, ksl),
         positions
     ), None
 
