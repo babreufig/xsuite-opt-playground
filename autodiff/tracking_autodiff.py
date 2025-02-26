@@ -53,7 +53,7 @@ dtrackrev = jax.jit(jax.jacrev(track))
 
 
 @jax.jit
-def dtrackfd(positions, init_cond, lst, eps=1e-12):
+def dtrackfd(positions, init_cond, lst, eps=1e-9):
     eps_diag = jnp.eye(len(positions)) * eps
     positions_vector = jnp.vstack([positions]*len(positions)).T
     positions_vector = track(jnp.vstack(
