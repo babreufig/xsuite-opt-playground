@@ -50,19 +50,30 @@ def track(positions, init_cond, lattice_array):
 dtrackfwd = jax.jit(jax.jacfwd(track))
 dtrackrev = jax.jit(jax.jacrev(track))
 
-
 @jax.jit
-def dtrackfd(positions, init_cond, lst, eps=1e-9):
-    eps_diag = jnp.eye(len(positions)) * eps
-    positions_vector = jnp.vstack([positions]*len(positions)).T
-    positions_vector = track(jnp.vstack(
-        [positions_vector+eps_diag, positions_vector-eps_diag]).T, init_cond, lst)
-    return (positions_vector[:, :len(positions)]-positions_vector[:, len(positions):])/(2*eps)
+def dtrackfd(positions, init_cond, lattice_array, eps=1e-9):
+    n_dim = len(positions)
+
+    # Create a diagonal matrix for perturbation
+    eye_eps = jnp.eye(n_dim) * eps  # Perturbation matrix
+
+    # Forward and backward perturbed positions ( +eps and -eps)
+    p_plus = positions + eye_eps  # Perturb the positions by +eps
+    p_minus = positions - eye_eps  # Perturb the positions by -eps
+
+    # Track the perturbed positions using the lattice
+    tracked_plus = jax.vmap(lambda p: track(p, init_cond, lattice_array))(p_plus)
+    tracked_minus = jax.vmap(lambda p: track(p, init_cond, lattice_array))(p_minus)
+
+    # Compute the finite difference approximation to the Jacobian
+    jacobian = (tracked_plus - tracked_minus) / (2 * eps)
+
+    return jacobian.T
 
 # End tracking code
 
 
-ncell = 10000
+ncell = 1
 fodo_lattice = jnp.asarray([
     (ElementType.DRIFT, 1.2, 0.0),
     (ElementType.QUADRUPOLE_KICK, 0.8, 0.0),
@@ -77,9 +88,9 @@ chi = 0.8
 
 init_cond = jnp.array([rvv, chi])
 
-# jac_fwd = dtrackfwd(p0, init_cond, fodo_lattice)
-# jac_rev = dtrackrev(p0, init_cond, fodo_lattice)
-# jac_fd = dtrackfd(p0, init_cond, fodo_lattice)
+jac_fwd = dtrackfwd(p0, init_cond, fodo_lattice)
+jac_rev = dtrackrev(p0, init_cond, fodo_lattice)
+jac_fd = dtrackfd(p0, init_cond, fodo_lattice)
 
 # tracked_pos = track(p0, init_cond, fodo_lattice)
 
