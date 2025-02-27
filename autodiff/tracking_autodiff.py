@@ -9,10 +9,9 @@ class ElementType(IntEnum):
     DRIFT = 0
     QUADRUPOLE_KICK = 1
 
-def drift(positions, init_cond, length):
+def drift(positions, rvv, length):
     x, px, y, py, zeta, delta = positions
     rpp = 1 / (1 + delta)
-    rvv, _ = init_cond
     return jnp.asarray([x + px * length,
                         px * rpp,
                         y + py * length,
@@ -21,9 +20,8 @@ def drift(positions, init_cond, length):
                         delta])
 
 
-def quad_kick(positions, init_cond, knl, ksl):
+def quad_kick(positions, chi, knl, ksl):
     x, px, y, py, zeta, delta = positions
-    _, chi = init_cond
     return jnp.asarray([x,
                         px - chi * (knl * x + ksl * y),
                         y,
@@ -31,24 +29,64 @@ def quad_kick(positions, init_cond, knl, ksl):
                         zeta,
                         delta])
 
-def trackone(positions, init_cond, element):
+def trackone(positions, rvv, chi, element):
     # Apply a drift or kick to the particle positions
     element_type, knl, ksl = element
     return jax.lax.cond(
         element_type == ElementType.DRIFT,
-        lambda p: drift(p, init_cond, knl),
-        lambda p: quad_kick(p, init_cond, knl, ksl),
+        lambda p: drift(p, rvv, knl),
+        lambda p: quad_kick(p, chi, knl, ksl),
         positions
     ), None
 
 
 @jax.jit
 def track(positions, init_cond, lattice_array):
-    return jax.lax.scan(lambda p, e: trackone(p, init_cond, e), positions, lattice_array)[0]
+    rvv, chi = init_cond
+    return jax.lax.scan(lambda p, e: trackone(p, rvv, chi, e), positions, lattice_array)[0]
 
+@jax.jit
+def track_fori(positions, init_cond, lattice_array):
+    rvv, chi = init_cond
+    def body_fun(i, val):
+        return trackone(val, rvv, chi, lattice_array[i])[0]
+
+    return jax.lax.fori_loop(0, lattice_array.shape[0], body_fun, positions)
+
+@jax.jit
+def track_hybrid(positions, init_cond, lattice_array):
+    rvv, chi = init_cond
+    for i in range(min(8, lattice_array.shape[0])):
+        positions, _ = trackone(positions, rvv, chi, lattice_array[i])
+
+    def body_fun(pos, elem):
+        return trackone(pos, rvv, chi, elem)[0], None
+
+    return jax.lax.scan(body_fun, positions, lattice_array[4:])[0]
+
+@jax.jit
+def track_while(positions, init_cond, lattice_array):
+    rvv, chi = init_cond
+    def cond_fun(state):
+        i, _ = state
+        return i < lattice_array.shape[0]
+
+    def body_fun(state):
+        i, pos = state
+        pos, _ = trackone(pos, rvv, chi, lattice_array[i])
+        return i + 1, pos
+
+    _, final_positions = jax.lax.while_loop(cond_fun, body_fun, (0, positions))
+    return final_positions
 
 dtrackfwd = jax.jit(jax.jacfwd(track))
 dtrackrev = jax.jit(jax.jacrev(track))
+
+dtrackfwd_list = [jax.jit(jax.jacfwd(track)), jax.jit(jax.jacfwd(track_fori)),
+                  jax.jit(jax.jacfwd(track_hybrid)), jax.jit(jax.jacfwd(track_while))]
+dtrackrev_list = [jax.jit(jax.jacrev(track)), jax.jit(jax.jacrev(track_fori)),
+                  jax.jit(jax.jacrev(track_hybrid)), jax.jit(jax.jacrev(track_while))]
+
 
 @jax.jit
 def dtrackfd(positions, init_cond, lattice_array, eps=1e-9):
@@ -73,7 +111,7 @@ def dtrackfd(positions, init_cond, lattice_array, eps=1e-9):
 # End tracking code
 
 
-ncell = 1
+ncell = 100000
 fodo_lattice = jnp.asarray([
     (ElementType.DRIFT, 1.2, 0.0),
     (ElementType.QUADRUPOLE_KICK, 0.8, 0.0),
@@ -94,6 +132,4 @@ jac_fd = dtrackfd(p0, init_cond, fodo_lattice)
 
 # tracked_pos = track(p0, init_cond, fodo_lattice)
 
-# %timeit dtrackfwd(p0, init_cond, fodo_lattice)
-# %timeit dtrackrev(p0, init_cond, fodo_lattice)
-# %timeit dtrackfd(p0, init_cond, fodo_lattice)
+ # %timeit dtrackfwd_list[0](p0, init_cond, fodo_lattice).block_until_ready()
