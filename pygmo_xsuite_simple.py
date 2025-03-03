@@ -31,22 +31,22 @@ class Xsuite_simple:
         y[0:2] *= 10 # Stronger weight on the first two targets (weight = 10)
         y = y**2 # Avoid negative errors
         return y
-    
+
     def get_nic(self):
         return 0 # Number of inequality constraints
-    
+
     def get_nec(self):
         return 0 # Number of equality constraints
-    
+
     def get_nx(self):
         return 4
-    
+
     def get_bounds(self):
         return ([[-1e-4, -1e-4, -0.1, -0.1], [1e-4, 1e-4, 0.1, 0.1]])
-    
+
     def get_nobj(self):
         return 4 # Number of objectives
-    
+
     def gradient(self, x):
         pg.estimate_gradient_h(lambda x: self.fitness(x), x)
 

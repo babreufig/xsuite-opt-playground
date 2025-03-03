@@ -47,9 +47,9 @@ n_obj = 4
 class MyProblem(Problem):
 
     def __init__(self, surrogate=None):
-        super().__init__(n_var=n_var, 
-                         n_obj=n_obj, 
-                         n_constr=0, 
+        super().__init__(n_var=n_var,
+                         n_obj=n_obj,
+                         n_constr=0,
                          xl=bounds[:,0],  # Lower bounds
                          xu=bounds[:,1])   # Upper bounds
         self.surrogate = surrogate

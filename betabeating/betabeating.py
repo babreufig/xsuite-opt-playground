@@ -25,7 +25,7 @@ def objective(vars):
                   np.sqrt(bbp * ba) * np.sin(phibp - phia)],
                  [((aa - abp) * np.cos(phibp - phia) - (1 + aa * abp) * np.sin(phibp - phia)) / np.sqrt(bbp * ba),
                   (np.sqrt(ba/bbp) * (np.cos(phibp - phia) - abp * np.sin(phibp - phia)))]])
-    
+
     diff = M_ABP - M_calc
 
     return np.linalg.norm(diff, ord='fro')

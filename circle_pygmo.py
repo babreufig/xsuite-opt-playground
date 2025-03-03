@@ -9,19 +9,19 @@ class Circle_Problem:
         ci2 = x[0]**2 + x[1]**2 - 4
 
         return [x[0], ci1, ci2]
-    
+
     def get_nic(self):
         return 2 # Number of inequality constraints
-    
+
     def get_nec(self):
         return 0 # Number of equality constraints
-    
+
     def get_bounds(self):
         return ([-8]*2, [8]*2)
-    
+
     def get_nobj(self):
         return 1 # Number of objectives
-    
+
     def gradient(self, x):
         return ([1, 0, -2*x[0], -2*x[1], 2*x[0], 2*x[1]])
 
@@ -34,4 +34,4 @@ pop = pg.population(prob = udp, size = 1)
 pop = algo.evolve(pop)
 
 print(pop.champion_f)
-print(pop.champion_x) 
+print(pop.champion_x)

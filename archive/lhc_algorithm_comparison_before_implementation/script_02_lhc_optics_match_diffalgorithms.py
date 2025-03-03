@@ -43,16 +43,16 @@ opt = collider.lhcb1.match(
     init=tw0, init_at=xt.START,
     vary=[
         # Only IR8 quadrupoles including DS
-        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1', 
+        xt.VaryList(['kq6.l8b1', 'kq7.l8b1', 'kq8.l8b1', 'kq9.l8b1', 'kq10.l8b1',
             'kqtl11.l8b1', 'kqt12.l8b1', 'kqt13.l8b1',
-            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1', 
-            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1', 
+            'kq4.l8b1', 'kq5.l8b1', 'kq4.r8b1', 'kq5.r8b1',
+            'kq6.r8b1', 'kq7.r8b1', 'kq8.r8b1', 'kq9.r8b1',
             'kq10.r8b1', 'kqtl11.r8b1', 'kqt12.r8b1', 'kqt13.r8b1'])],
     targets=[
         xt.TargetSet(at='ip8', tars=('betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx'), value=tw0),
         xt.TargetSet(at='ip1', betx=0.15, bety=0.10, alfx=0, alfy=0, dx=0, dpx=0),
         xt.TargetRelPhaseAdvance('mux', value = tw0['mux', 'ip1.l1'] - tw0['mux', 's.ds.l8.b1']),
-        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1']), 
+        xt.TargetRelPhaseAdvance('muy', value = tw0['muy', 'ip1.l1'] - tw0['muy', 's.ds.l8.b1']),
     ])
 
 opt.check_limits = False
@@ -72,15 +72,15 @@ from scipy.optimize import least_squares, Bounds
 for bety in [0.15]:
     print("---------------------------------------------------------------------")
     print(f"Solving for bety: 0.15 --> {bety}")
-    
+
     opt.targets[7].value = bety # Set bety target
-    
+
     # print("PyBOBYQA")
     # merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
     # bounds = merit_function.get_x_limits()
     # x0 = merit_function.get_x()
     # merit_function.merit_function.call_counter = 0
-    
+
     # soln = pybobyqa.solve(merit_function, x0=x0,
     #             bounds=bounds.T, # wants them transposed...
     #             rhobeg=1e-6, rhoend=1e-16, maxfun=4000, # set maximum to 4000 function evaluations
@@ -115,7 +115,7 @@ for bety in [0.15]:
     #        'Penalty': np.dot(merit_function(soln.x), merit_function(soln.x)), 'Avg Change knob': np.sqrt(np.mean(knob_values_diff**2)),'Max Change knob': np.max(knob_values_diff)}
     # rows.append(row)
     # opt.tag(f"LS-TRF-{bety}")
-    
+
     # opt.reload(0)
     # print("Least Squares: Dogbox Algorithm")
     # merit_function = opt.get_merit_function(return_scalar=False, check_limits=False)
@@ -224,7 +224,7 @@ for bety in [0.15]:
     #         'Penalty': np.dot(opt._err(x_sol), opt._err(x_sol)), 'Avg Change knob': np.sqrt(np.mean(knob_values_diff**2)),
     #         'Max Change knob': np.max(knob_values_diff), 'X': opt.get_knob_values()}
     #     opt.tag(f"Xsuite-bfgs-{bety}")
-        
+
     rows.append(row)
 
 opt.log()
