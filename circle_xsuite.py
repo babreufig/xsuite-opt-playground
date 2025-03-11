@@ -12,6 +12,7 @@ tols = [1e-8, 1e-8, 1e-8]
 
 vary = [xt.Vary(ii, container=x0, step=steps[ii]) for ii in range(len(x0))]
 
+# Doesn't work anymore, ActionCall is not there
 
 opt = opti.Optimize(vary=vary, targets=xt.match.ActionCall(f, vary).get_targets(tar))
 opt.targets[0].weight = 2

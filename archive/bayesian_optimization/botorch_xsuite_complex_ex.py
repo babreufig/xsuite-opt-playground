@@ -1,10 +1,10 @@
 import xtrack as xt
-import os
 import numpy as np
 from scipy.optimize import minimize
-import lhc_match as lm
+import lattice_data.lhc_match as lm
 import typing as t
 import torch
+from util.constants import HLLHC15_THICK_PATH, OPT_150_1500_PATH
 
 from botorch.models import SingleTaskGP
 from botorch.acquisition import UpperConfidenceBound
@@ -21,11 +21,8 @@ from botorch.acquisition.multi_objective import ExpectedHypervolumeImprovement
 
 import matplotlib.pyplot as plt
 
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
-print(dir_path)
-collider = xt.Multiline.from_json(dir_path + "/hllhc15_collider_thick.json")
-collider.vars.load_madx_optics_file(dir_path + "/opt_round_150_1500.madx")
+collider = xt.Multiline.from_json(HLLHC15_THICK_PATH)
+collider.vars.load_madx_optics_file(OPT_150_1500_PATH)
 
 collider.build_trackers()
 
@@ -96,7 +93,7 @@ def get_ground_truth_2d(
     for i in range(n_eval_x1):
         for j in range(n_eval_x2):
             grid_y[i, j] = objective_fun(grid_X[i, j])
-    
+
     grid_y = np.array(grid_y)
     return x1, x2, grid_y
 

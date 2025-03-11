@@ -7,10 +7,7 @@ from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.algorithms.moo.moead import MOEAD
 from pymoo.algorithms.soo.nonconvex.cmaes import CMAES
 from pymoo.algorithms.soo.nonconvex.ga import GA
-from pymoo.visualization.fitness_landscape import FitnessLandscape
 from pymoo.util.ref_dirs import get_reference_directions
-from pymoo.visualization.scatter import Scatter
-from pymoo.algorithms.soo.nonconvex.brkga import BRKGA
 from pymoo.algorithms.soo.nonconvex.de import DE
 
 rastrigin_problem = get_problem("rastrigin", n_var=14)

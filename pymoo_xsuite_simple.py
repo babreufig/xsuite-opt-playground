@@ -1,5 +1,4 @@
 import xtrack as xt
-import os
 import numpy as np
 
 from pymoo.core.problem import Problem
@@ -8,12 +7,10 @@ from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.operators.sampling.lhs import LHS
 
-from pymoo.visualization.scatter import Scatter
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
+from util.constants import LHC_THICK_KNOBS_PATH
 
 # Load a line and build a tracker
-line = xt.Line.from_json(dir_path + '/lhc_thick_with_knobs.json')
+line = xt.Line.from_json(LHC_THICK_KNOBS_PATH)
 line.build_tracker()
 
 # Match tunes and chromaticities to assigned values

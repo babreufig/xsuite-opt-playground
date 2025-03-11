@@ -1,7 +1,7 @@
 import xtrack as xt
-import os
 import numpy as np
 from scipy.optimize import minimize
+from util.constants import LHC_THICK_KNOBS_PATH
 
 import typing as t
 import torch
@@ -17,10 +17,8 @@ from botorch.optim import optimize_acqf
 import matplotlib.pyplot as plt
 
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-
 # Load a line and build a tracker
-line = xt.Line.from_json(dir_path + '/../../lhc_thick_with_knobs.json')
+line = xt.Line.from_json(LHC_THICK_KNOBS_PATH)
 line.build_tracker()
 
 # Match tunes and chromaticities to assigned values

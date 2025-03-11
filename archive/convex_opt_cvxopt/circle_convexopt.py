@@ -21,16 +21,16 @@ starting_point = [-0.5, -1.2]
 def F(x=None, z=None):
     if x is None:  # Initial guess (0, 0), zero nonlinear functions
         return 2, matrix(starting_point)
-    
+
     # Objective function
     f = matrix([x[0], f_1(x), f_2(x)]) # Dimension (1,1)
-    
+
     # Gradient
     Df = matrix([[1, 0], [-2 * x[0], -2 * x[1]], [4 * x[0], 4 * x[1]]]).T # Gradient: Dimension (1,2)
-    
+
     if z is None:
         return f, Df
-    
+
     H = z[1] * matrix([[-2.0, 0.0], [0.0, -2.0]]) + z[2] * matrix([[4.0, 0.0], [0.0, 4.0]])
     print(f'f[{np.round(x[0], 3)}, {np.round(x[1], 3)}] = {np.round(f[0], 3)}')
     return f, Df, H

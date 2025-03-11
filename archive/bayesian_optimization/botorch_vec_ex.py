@@ -67,7 +67,7 @@ def get_ground_truth_2d(
     for i in range(n_eval_x1):
         for j in range(n_eval_x2):
             grid_y[i, j] = objective_fun(grid_X[i, j])
-    
+
     grid_y = np.array(grid_y)
     return x1, x2, grid_y
 

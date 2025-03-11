@@ -1,13 +1,11 @@
 from cvxopt import matrix, solvers
 import xtrack as xt
-import os
 import pandas as pd
 import numpy as np
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
+from util.constants import LHC_THICK_KNOBS_PATH
 
 # Load a line and build a tracker
-line = xt.Line.from_json(dir_path + '/lhc_thick_with_knobs.json')
+line = xt.Line.from_json(LHC_THICK_KNOBS_PATH)
 line.build_tracker()
 
 # Match tunes and chromaticities to assigned values

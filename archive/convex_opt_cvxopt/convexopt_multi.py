@@ -11,17 +11,17 @@ from cvxopt import matrix, solvers
 def F(x=None, z=None):
     if x is None:  # Initial guess (2.2, 1.2), zero nonlinear functions
         return 0, matrix([2.2, 1.2])
-    
+
     # Objective function
     f = matrix([(x[0] - 1)**2 + (x[1] - 2)**2 +  # f1(x, y)
                 (x[0] + x[1] - 3)**2 +            # f2(x, y)
                 (x[0] - x[1])**2],               # f3(x, y)
                (1, 1))
-    
+
     # Gradient
     Df = matrix([2 * (x[0] - 1) + 2 * (x[0] + x[1] - 3) + 2 * (x[0] - x[1]),
                  2 * (x[1] - 2) + 2 * (x[0] + x[1] - 3) -2 * (x[0] - x[1])]).T
-    
+
     if z is None:
         return f, Df
     # Hessian
@@ -34,21 +34,21 @@ def F(x=None, z=None):
 # def F_multi(x=None, z=None):
 #     if x is None:  # Initial guess (5, 4), zero nonlinear functions
 #         return 2, matrix([2.0, 1.0])
-    
+
 #     # Zielfunktion
 #     f = matrix([(x[0] - 1)**2 + (x[1] - 2)**2,  # f1(x, y)
 #                 (x[0] + x[1] - 3)**2,            # f2(x, y)
 #                 (x[0] - x[1])**2],               # f3(x, y)
 #                (3, 1))
-    
+
 #     # Gradient
 #     Df = matrix([[2 * (x[0] - 1), 2 * (x[1] - 2)],  # Gradient of f1
 #                  [2 * (x[0] + x[1] - 3), 2 * (x[0] + x[1] - 3)],  # Gradient of f2
 #                  [2 * (x[0] - x[1]), -2 * (x[0] - x[1])]]).T  # Gradient of f3
-    
+
 #     if z is None:
 #         return f, Df
-    
+
 #     H = z[0] * matrix([[2.0, 0.0], [0.0, 2.0]]) + \
 #         z[1] * matrix([[2.0, 2.0], [2.0, 2.0]]) + \
 #         z[2] * matrix([[2.0, -2.0], [-2.0, 2.0]])

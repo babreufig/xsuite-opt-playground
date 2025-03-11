@@ -1,18 +1,16 @@
 from cvxopt import matrix, solvers
 
 import xtrack as xt
-import lhc_match as lm
+import lattice_data.lhc_match as lm
 
 import numpy as np
-import os
 import pandas as pd
+from util.constants import HLLHC15_THICK_PATH, OPT_150_1500_PATH
 
 # Load LHC model
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-print(dir_path)
-collider = xt.Multiline.from_json(dir_path + "/hllhc15_collider_thick.json")
-collider.vars.load_madx_optics_file(dir_path + "/opt_round_150_1500.madx")
+collider = xt.Multiline.from_json(HLLHC15_THICK_PATH)
+collider.vars.load_madx_optics_file(OPT_150_1500_PATH)
 
 collider.build_trackers()
 

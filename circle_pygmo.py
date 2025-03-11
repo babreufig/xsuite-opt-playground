@@ -1,5 +1,4 @@
 import pygmo as pg
-import numpy as np
 
 class Circle_Problem:
 
