@@ -26,7 +26,6 @@ if RESCALE:
     merit_function = opt.get_merit_function(return_scalar=True, check_limits=False, rescale_x=(0,1))
     bounds = merit_function.get_x_limits()
     x0 = merit_function.get_x()
-    breakpoint()
 
 else:
     merit_function = opt.get_merit_function(return_scalar=True, check_limits=False)
