@@ -5,14 +5,14 @@
 
 // Struct with SoA layout
 typedef struct {
-    double* x;
-    double* y;
-    double* px;
-    double* py;
-    double* rpp;
-    double* rvv;
-    double* s;
-    double* zeta;
+    double* restrict x;
+    double* restrict y;
+    double* restrict px;
+    double* restrict py;
+    double* restrict rpp;
+    double* restrict rvv;
+    double* restrict s;
+    double* restrict zeta;
     int64_t num_particles;
 } LocalParticle;
 
@@ -26,8 +26,8 @@ static inline void Drift_single_particle(LocalParticle* restrict part, int64_t i
 
     part->x[i] += xp * length;
     part->y[i] += yp * length;
-    part->s[i] += length; // using this denies vectorization
-    part->zeta[i] += length * dzeta; // using this denies vectorization... but why?
+    part->s[i] += length; // using this denies vectorization if not restricted
+    part->zeta[i] += length * dzeta; // using this denies vectorization
 }
 
 // Apply drift to all particles (vectorize!!)
