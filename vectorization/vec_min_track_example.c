@@ -40,44 +40,44 @@ void Drift_track_local_particle(LocalParticle* restrict part, double length) {
     }
 }
 
-void Drift_single_particle_expanded(
-    int64_t num_particles,
-    double* restrict rpp,
-    double* restrict rvv,
-    double* restrict px,
-    double* restrict py,
-    double* restrict x,
-    double* restrict y,
-    double* restrict s,
-    double* restrict zeta,
-    double length)
-{
-    // Tell compiler these pointers are aligned (adjust to your system's vector width)
-    rpp   = __builtin_assume_aligned(rpp, 32);
-    rvv   = __builtin_assume_aligned(rvv, 32);
-    px    = __builtin_assume_aligned(px, 32);
-    py    = __builtin_assume_aligned(py, 32);
-    x     = __builtin_assume_aligned(x, 32);
-    y     = __builtin_assume_aligned(y, 32);
-    s     = __builtin_assume_aligned(s, 32);
-    zeta  = __builtin_assume_aligned(zeta, 32);
+// void Drift_single_particle_expanded(
+//     int64_t num_particles,
+//     double* restrict rpp,
+//     double* restrict rvv,
+//     double* restrict px,
+//     double* restrict py,
+//     double* restrict x,
+//     double* restrict y,
+//     double* restrict s,
+//     double* restrict zeta,
+//     double length)
+// {
+//     // Tell compiler these pointers are aligned (adjust to your system's vector width)
+//     rpp   = __builtin_assume_aligned(rpp, 32);
+//     rvv   = __builtin_assume_aligned(rvv, 32);
+//     px    = __builtin_assume_aligned(px, 32);
+//     py    = __builtin_assume_aligned(py, 32);
+//     x     = __builtin_assume_aligned(x, 32);
+//     y     = __builtin_assume_aligned(y, 32);
+//     s     = __builtin_assume_aligned(s, 32);
+//     zeta  = __builtin_assume_aligned(zeta, 32);
 
-    for (int64_t i = 0; i < num_particles; i++) {
-        double rpp_i = rpp[i];
-        double rv0v = 1.0 / rvv[i];
-        double xp = px[i] * rpp_i;
-        double yp = py[i] * rpp_i;
-        double dzeta = 1.0 - rv0v * (1.0 + (xp * xp + yp * yp) / 2.0);
+//     for (int64_t i = 0; i < num_particles; i++) {
+//         double rpp_i = rpp[i];
+//         double rv0v = 1.0 / rvv[i];
+//         double xp = px[i] * rpp_i;
+//         double yp = py[i] * rpp_i;
+//         double dzeta = 1.0 - rv0v * (1.0 + (xp * xp + yp * yp) / 2.0);
 
-        x[i] += xp * length;
-        y[i] += yp * length;
-        s[i] += length;
-        zeta[i] += length * dzeta;
-    }
-}
+//         x[i] += xp * length;
+//         y[i] += yp * length;
+//         s[i] += length;
+//         zeta[i] += length * dzeta;
+//     }
+// }
 
 // Helper function to initialize particles
-void init_particles(LocalParticle* restrict part, int64_t num_particles) {
+void init_particles(LocalParticle* part, int64_t num_particles) {
     part->num_particles = num_particles;
     int64_t size = num_particles * sizeof(double);
     part->x = (double*)aligned_alloc(32, size);
@@ -98,7 +98,7 @@ void init_particles(LocalParticle* restrict part, int64_t num_particles) {
         part->rpp[i] = 1.0 + (double)i * 0.0001;
         part->rvv[i] = 1.0 + (double)i * 0.0002;
         part->s[i]    = 0.0;
-        part->zeta[i] = 0.0;
+        part->zeta[i] = 0.1;
     }
 }
 
@@ -126,6 +126,8 @@ int main() {
     free(part.py);
     free(part.rpp);
     free(part.rvv);
+    free(part.s);
+    free(part.zeta);
 
     return 0;
 }

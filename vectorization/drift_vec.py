@@ -2,7 +2,7 @@ import xtrack as xt
 import numpy as np
 import time
 
-n_part = int(5e7)
+n_part = int(5e6)
 p = xt.Particles(p0c=7e12, x = np.linspace(-1, 1, n_part))
 
 line = xt.Line(elements=[xt.Drift(length=1.0)])

@@ -10,16 +10,24 @@ env.particle_ref = xt.Particles(p0c=7e12)
 
 env['kq'] = 0.1
 env['dk1l'] = 0.
-env['bphi'] = 0.
+env['bphi'] = 0.01
+
+src_marker = 'src_mk'
+src_marker_loc = 3.
+obs_marker = 'obs_mk'
 
 line = env.new_line(components=[
     env.new('qf', 'Quadrupole', k1='kq', length=0.5, anchor='start', at=1.),
-    env.new('bend', 'Bend', angle='bphi', k0='bphi', rot_s_rad=np.pi/2, at=0., anchor='start', length=1.0),
     env.new('qd', 'Quadrupole', k1='-kq', length=0.5, anchor='start', at=11.,
             from_='qf@end'),
+    env.new('bendh', 'Bend', angle='bphi', k0_from_h=True, at=5., anchor='start', length=1.0),
+    env.new('bendv', 'Bend', angle='bphi', rot_s_rad=np.pi/2, k0_from_h=True,
+            at=18., anchor='start', length=1.0),
     env.new('end', 'Marker', at=10., from_='qd@end'),
     env.new('start', 'Marker', at=0.),
-    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=1.),
+    env.new(src_marker, 'Marker', at=src_marker_loc),
+    env.new(obs_marker, 'Marker', at=15.),
+    env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=src_marker_loc),
 ])
 
 opt = line.match(
@@ -33,52 +41,38 @@ opt.solve()
 opt.target_status()
 opt.vary_status()
 
-#tw0 = line.twiss4d(start=xt.START, end="qd@end", init_at=xt.END)
 tw0 = line.twiss4d()
-init_conditions = tw0.get_twiss_init('start')
 
-env['bphi'] = 2 * np.pi / 1000
-tw0 = line.twiss4d(init=init_conditions)
+tw1 = line.twiss4d(start=xt.START, end=src_marker, init=tw0)
+tw2 = line.twiss4d(start=src_marker, end=obs_marker, init=tw0)
+tw3 = line.twiss4d(start=obs_marker, end=xt.END, init=tw0)
 
-betx_A = tw0.betx[0]
-bety_A = tw0.bety[0]
-betx_B = tw0.betx[-1]
-bety_B = tw0.bety[-1]
-alfx_A = tw0.alfx[0]
-alfy_A = tw0.alfy[0]
-alfx_B = tw0.alfx[-1]
-alfy_B = tw0.alfy[-1]
-mux_A = tw0.mux[0]
-muy_A = tw0.muy[0]
-mux_B = tw0.mux[-1]
-muy_B = tw0.muy[-1]
-dx_A = tw0.dx[0]
-dx_B = tw0.dx[-1]
-dy_A = tw0.dy[0]
-dy_B = tw0.dy[-1]
-dpx_A = tw0.dpx[0]
-dpx_B = tw0.dpx[-1]
-dpy_A = tw0.dpy[0]
-dpy_B = tw0.dpy[-1]
+tw_deriv = tw2.get_twiss_param_derivative(src=src_marker, observation=obs_marker)
 
-R_AB = tw0.get_R_matrix(tw0.name[0], tw0.name[-1])
+R_AB = tw0.get_R_matrix(src_marker, obs_marker)
 
-print(dx_A, dpx_A, dy_A, dpy_A)
-print(dx_B, dpx_B, dy_B, dpy_B)
+eps = 1e-4
 
-dk1l_arr = np.linspace(-0.001, 0.001, 100)
-init_sec = tw0.get_twiss_init('start')
-dx_arr = np.zeros(len(dk1l_arr))
+env['dk1l'] += eps
+tw_plus = line.twiss4d(init=tw0, start=src_marker, end=obs_marker)
+env['dk1l'] -= 2 * eps
+tw_minus = line.twiss4d(init=tw0, start=src_marker, end=obs_marker)
+env['dk1l'] += eps
 
-for i, dk1l in enumerate(dk1l_arr):
-    env['dk1l'] = dk1l
-    twnew = line.twiss(init=init_sec)
-    dx_arr[i] = twnew.dpy[-1]
-    analytic_ddx = twnew.get_twiss_param_derivative('end', 'dquad')['ddpy']
+fd_dict = {
+    'betx': (tw_plus.betx[-1] - tw_minus.betx[-1]) / (2 * eps),
+    'bety': (tw_plus.bety[-1] - tw_minus.bety[-1]) / (2 * eps),
+    'alfx': (tw_plus.alfx[-1] - tw_minus.alfx[-1]) / (2 * eps),
+    'alfy': (tw_plus.alfy[-1] - tw_minus.alfy[-1]) / (2 * eps),
+    'dx': (tw_plus.dx[-1] - tw_minus.dx[-1]) / (2 * eps),
+    'dpx': (tw_plus.dpx[-1] - tw_minus.dpx[-1]) / (2 * eps),
+    'dy': (tw_plus.dy[-1] - tw_minus.dy[-1]) / (2 * eps),
+    'dpy': (tw_plus.dpy[-1] - tw_minus.dpy[-1]) / (2 * eps),
+}
 
-gradient = (dx_arr[1:] - dx_arr[:-1])/(dk1l_arr[1] - dk1l_arr[0])
-
-print(analytic_ddx)
-print(gradient)
-
-plt.show()
+# pretty print both fd_dict and tw_deriv (use pretty print)
+import pprint
+pprint.pprint("Finite Differences:")
+pprint.pprint(fd_dict)
+pprint.pprint(f"Twiss Derivatives:")
+pprint.pprint(tw_deriv)
