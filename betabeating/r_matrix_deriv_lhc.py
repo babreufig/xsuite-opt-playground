@@ -15,20 +15,20 @@ collider.vars.load_madx(OPT_150_1500_PATH)
 collider.build_trackers()
 
 # Initial twiss
-tw0 = collider.lhcb1.twiss()
+line = collider.lhcb1
 
 # Inspect IPS
-tw0.rows['ip.*'].cols['betx bety mux muy x y']
+#tw0.rows['ip.*'].cols['betx bety mux muy x y']
 
 
 # Prepare for optics matching: set limits and steps for all circuits
-lm.set_var_limits_and_steps(collider)
+# lm.set_var_limits_and_steps(collider)
 
 # Inspect for one circuit
-collider.vars.vary_default['kq4.l2b2']
+# collider.vars.vary_default['kq4.l2b2']
 
-start = "ip5"
-end = "ip6"
+start = "ip1"
+end = "ip3"
 
 #collider.lhcb1.cycle(start)
 
@@ -39,20 +39,39 @@ end = "ip6"
 # add multipole at IP8 for calculating derivatives
 dk1l = 0.1
 
-collider.lhcb1.insert(collider.new('dquad', 'Multipole', knl=[0., dk1l]), from_=start, at=start)
-tw_81_12_new = collider.lhcb1.twiss(start=start, end=end, init_at=start,
-                                betx=0.15, bety=0.15)
+line.insert(collider.new('dquad', 'Multipole', knl=[0., dk1l]), from_=start, at=start)
 
-derivs = tw_81_12_new.get_twiss_param_derivative(start, end)
+tw0 = line.twiss()
+tw_lim = line.twiss(init=tw0, start=start, end=end)
 
-def finite_diff(line, k, start, end, eps=1e-6):
-    line['dquad'].knl = [0, k]
-    tw0 = line.twiss(init=tw_81_12_new, start=start, end=end)
-    line['dquad'].knl = [0, k + eps]
-    tw1 = line.twiss(init=tw0, start=start, end=end)
-    return (tw1.betx[-1] - tw0.betx[-1]) / eps
+derivs = tw0.get_twiss_param_derivative(start, end)
 
+eps = 1e-6
 
-diffs = finite_diff(collider.lhcb1, dk1l, start, end)
-print(derivs)
-print(diffs)
+line['dquad'].knl[1] += eps
+tw_plus = line.twiss(init=tw_lim, start=start, end=end)
+line['dquad'].knl[1] -= 2 * eps
+tw_minus = line.twiss(init=tw_lim, start=start, end=end)
+line['dquad'].knl[1] += eps
+
+fd_dict = {
+    'dbetx': (tw_plus.betx[-1] - tw_minus.betx[-1]) / (2 * eps),
+    'dbety': (tw_plus.bety[-1] - tw_minus.bety[-1]) / (2 * eps),
+    'dalfx': (tw_plus.alfx[-1] - tw_minus.alfx[-1]) / (2 * eps),
+    'dalfy': (tw_plus.alfy[-1] - tw_minus.alfy[-1]) / (2 * eps),
+    'dmux': (tw_plus.mux[-1] - tw_minus.mux[-1]) / (2 * eps),
+    'dmuy': (tw_plus.muy[-1] - tw_minus.muy[-1]) / (2 * eps),
+    'ddx': (tw_plus.dx[-1] - tw_minus.dx[-1]) / (2 * eps),
+    'ddpx': (tw_plus.dpx[-1] - tw_minus.dpx[-1]) / (2 * eps),
+    'ddy': (tw_plus.dy[-1] - tw_minus.dy[-1]) / (2 * eps),
+    'ddpy': (tw_plus.dpy[-1] - tw_minus.dpy[-1]) / (2 * eps),
+}
+import pprint
+pprint.pprint("Twiss Derivatives")
+pprint.pprint(derivs)
+pprint.pprint("Finite Differences")
+pprint.pprint(fd_dict)
+
+# Assert that finite differences and twiss derivatives are the same
+for key in derivs.keys():
+    assert np.isclose(derivs[key], fd_dict[key], rtol=1e-4, atol=1e-6), f"Error in {key}"

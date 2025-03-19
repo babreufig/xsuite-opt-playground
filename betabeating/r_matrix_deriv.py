@@ -1,9 +1,5 @@
 import xtrack as xt
 import numpy as np
-import sympy as sp
-import matplotlib.pyplot as plt
-
-sp.init_printing()
 
 env = xt.Environment()
 env.particle_ref = xt.Particles(p0c=7e12)
@@ -30,16 +26,16 @@ line = env.new_line(components=[
     env.new('dquad', 'Multipole', knl=[0., 'dk1l'], at=src_marker_loc),
 ])
 
-opt = line.match(
-    method='4d',
-    solve=False,
-    vary=xt.Vary('kq', step=1e-4),
-    targets=xt.Target('qx', 0.166666, tol=1e-6),
-)
+# opt = line.match(
+#     method='4d',
+#     solve=False,
+#     vary=xt.Vary('kq', step=1e-4),
+#     targets=xt.Target('qx', 0.166666, tol=1e-6),
+# )
 
-opt.solve()
-opt.target_status()
-opt.vary_status()
+# opt.solve()
+# opt.target_status()
+# opt.vary_status()
 
 tw0 = line.twiss4d()
 
@@ -64,6 +60,8 @@ fd_dict = {
     'bety': (tw_plus.bety[-1] - tw_minus.bety[-1]) / (2 * eps),
     'alfx': (tw_plus.alfx[-1] - tw_minus.alfx[-1]) / (2 * eps),
     'alfy': (tw_plus.alfy[-1] - tw_minus.alfy[-1]) / (2 * eps),
+    'mux': (tw_plus.mux[-1] - tw_minus.mux[-1]) / (2 * eps),
+    'muy': (tw_plus.muy[-1] - tw_minus.muy[-1]) / (2 * eps),
     'dx': (tw_plus.dx[-1] - tw_minus.dx[-1]) / (2 * eps),
     'dpx': (tw_plus.dpx[-1] - tw_minus.dpx[-1]) / (2 * eps),
     'dy': (tw_plus.dy[-1] - tw_minus.dy[-1]) / (2 * eps),
