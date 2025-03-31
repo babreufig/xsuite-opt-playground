@@ -99,8 +99,6 @@ for qqnn in quad_names:
     for nn in twiss_derivs[qqnn].keys():
         twiss_derivs[qqnn][nn] *= env[qqnn].length
 
-target_quantity = 'betx'
-
 target_quantities = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx']
 dtar_dvv = np.zeros(len(target_quantities))
 
@@ -111,8 +109,5 @@ for i, target_quantity in enumerate(target_quantities):
 err = opt.get_merit_function()
 jj = err.get_jacobian(err.get_x())
 
-print("dtar_dvv", dtar_dvv)
-print('jac[6,1]', jj[6,1])
-
 for i in range(len(dtar_dvv)):
-    print(f'Quantity: {target_quantities[i]},\tDerivative: {dtar_dvv[i]:.5f},\tJacobian: {jj[6+i,1]:.5f}')
+    print(f'Quantity: {target_quantities[i]},\t Derivative: {dtar_dvv[i]:.4f},\t Jacobian: {jj[6+i,1]:.5f}')
